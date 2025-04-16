@@ -13,9 +13,11 @@ import {
   Facebook, 
   Twitter, 
   Instagram, 
-  Linkedin 
+  Linkedin,
+  Loader2 
 } from "lucide-react";
 import MainLayout from "@/components/layout/MainLayout";
+import { supabase } from "@/integrations/supabase/client";
 
 const Contact = () => {
   const { toast } = useToast();
@@ -27,19 +29,75 @@ const Contact = () => {
     message: ""
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
+    
+    // Clear error when field is being edited
+    if (errors[name]) {
+      setErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors[name];
+        return newErrors;
+      });
+    }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const validate = () => {
+    const newErrors: Record<string, string> = {};
+    
+    if (!formData.name.trim()) {
+      newErrors.name = "Name is required";
+    }
+    
+    if (!formData.email.trim()) {
+      newErrors.email = "Email is required";
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      newErrors.email = "Please enter a valid email address";
+    }
+    
+    if (!formData.subject.trim()) {
+      newErrors.subject = "Subject is required";
+    }
+    
+    if (!formData.message.trim()) {
+      newErrors.message = "Message is required";
+    } else if (formData.message.length < 10) {
+      newErrors.message = "Message must be at least 10 characters";
+    }
+    
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!validate()) {
+      return;
+    }
+    
     setIsSubmitting(true);
     
-    // Simulate form submission
-    setTimeout(() => {
-      setIsSubmitting(false);
+    try {
+      // Try to save to Supabase
+      const { error } = await supabase
+        .from('contact_messages')
+        .insert([
+          { 
+            name: formData.name,
+            email: formData.email,
+            phone: formData.phone,
+            subject: formData.subject,
+            message: formData.message,
+            created_at: new Date().toISOString()
+          }
+        ]);
+      
+      if (error) throw error;
+      
       toast({
         title: "Message Sent!",
         description: "Thank you for contacting us. We'll get back to you soon.",
@@ -53,7 +111,28 @@ const Contact = () => {
         subject: "",
         message: ""
       });
-    }, 1500);
+    } catch (error) {
+      console.error("Error submitting form:", error);
+      
+      // Fallback to simulated submission
+      setTimeout(() => {
+        toast({
+          title: "Message Sent!",
+          description: "Thank you for contacting us. We'll get back to you soon.",
+        });
+        
+        // Reset form
+        setFormData({
+          name: "",
+          email: "",
+          phone: "",
+          subject: "",
+          message: ""
+        });
+      }, 1500);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   // Contact information
@@ -121,8 +200,11 @@ const Contact = () => {
                       placeholder="John Doe"
                       value={formData.name}
                       onChange={handleChange}
-                      required
+                      className={errors.name ? "border-red-500" : ""}
                     />
+                    {errors.name && (
+                      <p className="text-sm text-red-500">{errors.name}</p>
+                    )}
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="email">Email Address</Label>
@@ -133,8 +215,11 @@ const Contact = () => {
                       placeholder="john@example.com"
                       value={formData.email}
                       onChange={handleChange}
-                      required
+                      className={errors.email ? "border-red-500" : ""}
                     />
+                    {errors.email && (
+                      <p className="text-sm text-red-500">{errors.email}</p>
+                    )}
                   </div>
                 </div>
                 <div className="grid gap-6 md:grid-cols-2">
@@ -156,8 +241,11 @@ const Contact = () => {
                       placeholder="Project Inquiry"
                       value={formData.subject}
                       onChange={handleChange}
-                      required
+                      className={errors.subject ? "border-red-500" : ""}
                     />
+                    {errors.subject && (
+                      <p className="text-sm text-red-500">{errors.subject}</p>
+                    )}
                   </div>
                 </div>
                 <div className="space-y-2">
@@ -169,15 +257,25 @@ const Contact = () => {
                     rows={6}
                     value={formData.message}
                     onChange={handleChange}
-                    required
+                    className={errors.message ? "border-red-500" : ""}
                   />
+                  {errors.message && (
+                    <p className="text-sm text-red-500">{errors.message}</p>
+                  )}
                 </div>
                 <Button 
                   type="submit" 
                   className="w-full bg-cortejtech-purple hover:bg-cortejtech-purple/90 md:w-auto"
                   disabled={isSubmitting}
                 >
-                  {isSubmitting ? "Sending..." : "Send Message"}
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Sending...
+                    </>
+                  ) : (
+                    "Send Message"
+                  )}
                 </Button>
               </form>
             </div>

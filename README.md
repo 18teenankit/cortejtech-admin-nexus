@@ -1,10 +1,43 @@
-# Welcome to your Lovable project
+
+# CortejTech - Digital Agency Website
+
+![CortejTech Logo](/lovable-uploads/bd45910c-d0e8-4a45-a99f-6d7e6aad54ae.png)
+
+A modern, responsive website for CortejTech, a digital agency offering Web Development, App Development, Graphic Design, and UI/UX Design services.
 
 ## Project info
 
 **URL**: https://lovable.dev/projects/7a84fcb2-0839-494f-9d74-d55d8402b5c6
 
-## How can I edit this code?
+## Features
+
+- **Responsive Design**: Optimized for all devices from mobile to desktop
+- **Dynamic Content Management**: Admin panel to manage all website content
+- **Supabase Integration**: For backend functionality and data storage
+- **Admin Panel**: Secure admin area to manage all aspects of the website
+- **Multiple Pages**: Home, About, Services, Portfolio, Process, Blog, Contact, Testimonials, FAQ, and Career pages
+- **Form Validation**: Contact form with client-side validation
+- **Secure Authentication**: Admin login system with secure credentials
+
+## Admin Login
+
+- **URL**: /ankit/admin
+- **Username**: Ankit@cortejtech#968511
+- **Password**: Ankit@968511565788#
+
+## Tech Stack
+
+- **Frontend**: React, TypeScript, Tailwind CSS, shadcn-ui
+- **Backend**: Supabase for authentication, database, and storage
+- **State Management**: React hooks and context
+- **Routing**: React Router for navigation
+- **Forms**: React Hook Form for validation
+- **Icons**: Lucide React for consistent icons
+- **UI Components**: Custom components built with shadcn/ui
+
+## How to Use
+
+### How can I edit this code?
 
 There are several ways of editing your application.
 
@@ -50,24 +83,44 @@ npm run dev
 - Click on "New codespace" to launch a new Codespace environment.
 - Edit files directly within the Codespace and commit and push your changes once you're done.
 
-## What technologies are used for this project?
+## Project Structure
 
-This project is built with:
+- `/src` - Source code
+  - `/components` - Reusable UI components
+  - `/hooks` - Custom React hooks
+  - `/integrations` - Integration with external services like Supabase
+  - `/pages` - Page components for different routes
+  - `/lib` - Utility functions and helpers
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
-
-## How can I deploy this project?
+## Deployment
 
 Simply open [Lovable](https://lovable.dev/projects/7a84fcb2-0839-494f-9d74-d55d8402b5c6) and click on Share -> Publish.
 
-## Can I connect a custom domain to my Lovable project?
+## Connecting to Supabase
 
-Yes, you can!
+This project is configured to use Supabase for backend functionality. The connection is established in `src/integrations/supabase/client.ts`.
+
+## Custom Domain Setup
 
 To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
 
 Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+
+## Development Roadmap
+
+1. **Current Phase**: Initial website setup with basic pages and admin panel
+2. **Next Phase**: Implement full CRUD functionality for all content sections
+3. **Future Enhancements**: 
+   - Add user management
+   - Implement multiple admin roles
+   - Add analytics dashboard
+   - Integrate email notifications
+
+## License
+
+This project is proprietary and confidential.
+
+## Credits
+
+- Design and Development: CortejTech Team
+- Built with [Lovable](https://lovable.dev)
