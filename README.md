@@ -1,7 +1,7 @@
 
 # CortejTech - Digital Agency Website
 
-![CortejTech Logo](/lovable-uploads/bd45910c-d0e8-4a45-a99f-6d7e6aad54ae.png)
+![CortejTech Logo](/lovable-uploads/d7a01dde-60db-4fae-8ffd-89c17c9acb29.jpg)
 
 A modern, responsive website for CortejTech, a digital agency offering Web Development, App Development, Graphic Design, and UI/UX Design services.
 
@@ -34,6 +34,14 @@ A modern, responsive website for CortejTech, a digital agency offering Web Devel
 - **Forms**: React Hook Form for validation
 - **Icons**: Lucide React for consistent icons
 - **UI Components**: Custom components built with shadcn/ui
+
+## Database Tables
+
+The project uses Supabase as the backend database with the following tables:
+
+- **Settings**: Stores site configuration values (site name, logo URL, contact info)
+- **Jobs**: Stores career/job listings
+- **Contact Messages**: Stores form submissions from the contact page
 
 ## How to Use
 
@@ -108,7 +116,7 @@ Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-trick
 
 ## Development Roadmap
 
-1. **Current Phase**: Initial website setup with basic pages and admin panel
+1. **Current Phase**: Initial website setup with dynamic content management and admin panel
 2. **Next Phase**: Implement full CRUD functionality for all content sections
 3. **Future Enhancements**: 
    - Add user management

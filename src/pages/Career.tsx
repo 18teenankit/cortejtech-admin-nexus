@@ -32,23 +32,23 @@ const Career = () => {
     const fetchJobs = async () => {
       try {
         // Try to get jobs from supabase
-        const { data, error } = await supabase
+        const { data: jobsData, error: jobsError } = await supabase
           .from('jobs')
           .select('*')
           .order('created_at', { ascending: false });
         
-        if (error) throw error;
+        if (jobsError) throw jobsError;
         
-        setJobListings(data || []);
+        setJobListings(jobsData || []);
         
         // Try to get the no jobs message from settings
-        const { data: settings } = await supabase
+        const { data: settings, error: settingsError } = await supabase
           .from('settings')
           .select('value')
           .eq('key', 'no_jobs_message')
           .single();
         
-        if (settings) {
+        if (!settingsError && settings) {
           setNoJobsMessage(settings.value);
         }
       } catch (error) {

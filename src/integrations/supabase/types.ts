@@ -9,7 +9,90 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      contact_messages: {
+        Row: {
+          created_at: string | null
+          email: string
+          id: number
+          message: string
+          name: string
+          phone: string | null
+          subject: string
+        }
+        Insert: {
+          created_at?: string | null
+          email: string
+          id?: number
+          message: string
+          name: string
+          phone?: string | null
+          subject: string
+        }
+        Update: {
+          created_at?: string | null
+          email?: string
+          id?: number
+          message?: string
+          name?: string
+          phone?: string | null
+          subject?: string
+        }
+        Relationships: []
+      }
+      jobs: {
+        Row: {
+          apply_link: string
+          created_at: string | null
+          description: string
+          id: number
+          location: string
+          requirements: string[]
+          salary: string | null
+          title: string
+          type: string
+        }
+        Insert: {
+          apply_link: string
+          created_at?: string | null
+          description: string
+          id?: number
+          location: string
+          requirements: string[]
+          salary?: string | null
+          title: string
+          type: string
+        }
+        Update: {
+          apply_link?: string
+          created_at?: string | null
+          description?: string
+          id?: number
+          location?: string
+          requirements?: string[]
+          salary?: string | null
+          title?: string
+          type?: string
+        }
+        Relationships: []
+      }
+      settings: {
+        Row: {
+          id: number
+          key: string
+          value: string
+        }
+        Insert: {
+          id?: number
+          key: string
+          value: string
+        }
+        Update: {
+          id?: number
+          key?: string
+          value?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

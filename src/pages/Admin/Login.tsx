@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { AlertCircle, EyeOff, Eye } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { supabase } from "@/integrations/supabase/client";
+import { Database } from "@/integrations/supabase/types";
 
 const Login = () => {
   const [username, setUsername] = useState("");
@@ -14,7 +15,7 @@ const Login = () => {
   const [error, setError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [logoUrl, setLogoUrl] = useState("/lovable-uploads/bd45910c-d0e8-4a45-a99f-6d7e6aad54ae.png");
+  const [logoUrl, setLogoUrl] = useState("/lovable-uploads/d7a01dde-60db-4fae-8ffd-89c17c9acb29.jpg");
   const navigate = useNavigate();
 
   // Hardcoded admin credentials as specified in the PRD

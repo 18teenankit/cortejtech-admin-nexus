@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { 
@@ -35,6 +36,8 @@ interface SiteSettings {
   contactAddress: string;
 }
 
+type SettingsType = Record<string, string>;
+
 const Dashboard = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -43,7 +46,7 @@ const Dashboard = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [siteSettings, setSiteSettings] = useState<SiteSettings>({
     siteName: "CortejTech",
-    logo: "/lovable-uploads/bd45910c-d0e8-4a45-a99f-6d7e6aad54ae.png",
+    logo: "/lovable-uploads/d7a01dde-60db-4fae-8ffd-89c17c9acb29.jpg",
     noJobsMessage: "No openings currently, check back later. Email careers@cortejtech.com.",
     contactEmail: "info@cortejtech.com",
     contactPhone: "+91 9868-555-0123",
@@ -80,7 +83,7 @@ const Dashboard = () => {
           .select('*');
         
         if (!error && data && data.length > 0) {
-          const settings = data.reduce((acc, item) => {
+          const settings = data.reduce((acc: SettingsType, item) => {
             acc[item.key] = item.value;
             return acc;
           }, {} as Record<string, string>);
@@ -159,13 +162,45 @@ const Dashboard = () => {
   const handleSaveSettings = async () => {
     setIsLoading(true);
     try {
-      setTimeout(() => {
-        setIsLoading(false);
-        toast({
-          title: "Settings Saved",
-          description: "Your site settings have been updated successfully."
-        });
-      }, 1000);
+      // Update site name
+      const { error: siteNameError } = await supabase
+        .from('settings')
+        .upsert({ key: 'site_name', value: siteSettings.siteName }, { onConflict: 'key' });
+      
+      if (siteNameError) throw siteNameError;
+      
+      // Update no jobs message
+      const { error: noJobsError } = await supabase
+        .from('settings')
+        .upsert({ key: 'no_jobs_message', value: siteSettings.noJobsMessage }, { onConflict: 'key' });
+      
+      if (noJobsError) throw noJobsError;
+      
+      // Update contact email
+      const { error: emailError } = await supabase
+        .from('settings')
+        .upsert({ key: 'contact_email', value: siteSettings.contactEmail }, { onConflict: 'key' });
+      
+      if (emailError) throw emailError;
+      
+      // Update contact phone
+      const { error: phoneError } = await supabase
+        .from('settings')
+        .upsert({ key: 'contact_phone', value: siteSettings.contactPhone }, { onConflict: 'key' });
+      
+      if (phoneError) throw phoneError;
+      
+      // Update contact address
+      const { error: addressError } = await supabase
+        .from('settings')
+        .upsert({ key: 'contact_address', value: siteSettings.contactAddress }, { onConflict: 'key' });
+      
+      if (addressError) throw addressError;
+      
+      toast({
+        title: "Settings Saved",
+        description: "Your site settings have been updated successfully."
+      });
     } catch (error) {
       console.error("Error saving settings:", error);
       toast({
