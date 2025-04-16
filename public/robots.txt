@@ -1,14 +1,25 @@
+
 User-agent: Googlebot
 Allow: /
+Disallow: /ankit/admin
+Disallow: /ankit/admin/*
 
 User-agent: Bingbot
 Allow: /
+Disallow: /ankit/admin
+Disallow: /ankit/admin/*
 
 User-agent: Twitterbot
 Allow: /
+Disallow: /ankit/admin
+Disallow: /ankit/admin/*
 
 User-agent: facebookexternalhit
 Allow: /
+Disallow: /ankit/admin
+Disallow: /ankit/admin/*
 
 User-agent: *
 Allow: /
+Disallow: /ankit/admin
+Disallow: /ankit/admin/*

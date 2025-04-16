@@ -52,6 +52,14 @@ export default {
 					DEFAULT: 'hsl(var(--card))',
 					foreground: 'hsl(var(--card-foreground))'
 				},
+				cortejtech: {
+					purple: '#9452B4',
+					black: '#000000',
+					white: '#FFFFFF',
+					gray: '#E5E5E5',
+					'soft-purple': '#C7A4D6',
+					gold: '#FFD700'
+				},
 				sidebar: {
 					DEFAULT: 'hsl(var(--sidebar-background))',
 					foreground: 'hsl(var(--sidebar-foreground))',
