@@ -86,10 +86,26 @@ export const BlogManager = () => {
         description: "Blog post updated successfully"
       });
     } else {
+      // Ensure all required fields are present
+      if (!newPost.title || !newPost.slug || !newPost.content || !newPost.author) {
+        toast({
+          title: "Error", 
+          description: "Please fill all required fields",
+          variant: "destructive"
+        });
+        return;
+      }
+
       const { error } = await supabase
         .from('blog_posts')
         .insert([{
-          ...newPost,
+          title: newPost.title,
+          slug: newPost.slug,
+          content: newPost.content,
+          author: newPost.author,
+          excerpt: newPost.excerpt || null,
+          featured_image: newPost.featured_image || null,
+          is_published: newPost.is_published || true,
           published_at: new Date().toISOString()
         }]);
 

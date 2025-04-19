@@ -84,9 +84,27 @@ export const PortfolioManager = () => {
         description: "Portfolio item updated successfully"
       });
     } else {
+      // Ensure all required fields are present
+      if (!newItem.title || !newItem.description || !newItem.category || !newItem.image_url) {
+        toast({
+          title: "Error", 
+          description: "Please fill all required fields",
+          variant: "destructive"
+        });
+        return;
+      }
+
       const { error } = await supabase
         .from('portfolio_items')
-        .insert([newItem]);
+        .insert([{
+          title: newItem.title,
+          description: newItem.description,
+          category: newItem.category,
+          image_url: newItem.image_url,
+          client: newItem.client || null,
+          project_url: newItem.project_url || null,
+          completion_date: newItem.completion_date || null
+        }]);
 
       if (error) {
         toast({
