@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { 
@@ -79,7 +78,6 @@ const Dashboard = () => {
   const [logo, setLogo] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string>(siteSettings.logo);
   
-  // Job state
   const [jobs, setJobs] = useState<Job[]>([]);
   const [newJob, setNewJob] = useState<Partial<Job>>({
     title: "",
@@ -93,7 +91,6 @@ const Dashboard = () => {
   const [editingJob, setEditingJob] = useState<Job | null>(null);
   const [requirementInput, setRequirementInput] = useState("");
   
-  // Contact messages state
   const [contactMessages, setContactMessages] = useState<ContactMessage[]>([]);
   
   const [stats, setStats] = useState({
@@ -101,7 +98,14 @@ const Dashboard = () => {
     messagesCount: 0
   });
 
-  // Fetch data from Supabase
+  const modules = [
+    { name: "Dashboard", icon: <Home className="h-6 w-6" />, tab: "dashboard" },
+    { name: "Content", icon: <FileText className="h-6 w-6" />, tab: "content" },
+    { name: "Career", icon: <Briefcase className="h-6 w-6" />, tab: "career" },
+    { name: "Messages", icon: <MessageSquare className="h-6 w-6" />, tab: "messages" },
+    { name: "Settings", icon: <Settings className="h-6 w-6" />, tab: "settings" },
+  ];
+
   useEffect(() => {
     const loggedIn = localStorage.getItem("adminLoggedIn") === "true";
     setIsLoggedIn(loggedIn);
@@ -137,7 +141,6 @@ const Dashboard = () => {
           setLogoPreview(settings.logo_url || siteSettings.logo);
         }
         
-        // Fetch jobs
         const { data: jobsData, error: jobsError } = await supabase
           .from('jobs')
           .select('*');
@@ -147,7 +150,6 @@ const Dashboard = () => {
           setStats(prev => ({ ...prev, careersCount: jobsData.length }));
         }
         
-        // Fetch contact messages
         const { data: messagesData, error: messagesError } = await supabase
           .from('contact_messages')
           .select('*');
@@ -194,45 +196,37 @@ const Dashboard = () => {
   const handleSaveSettings = async () => {
     setIsLoading(true);
     try {
-      // Update site name
       const { error: siteNameError } = await supabase
         .from('settings')
         .upsert({ key: 'site_name', value: siteSettings.siteName }, { onConflict: 'key' });
       
       if (siteNameError) throw siteNameError;
       
-      // Update no jobs message
       const { error: noJobsError } = await supabase
         .from('settings')
         .upsert({ key: 'no_jobs_message', value: siteSettings.noJobsMessage }, { onConflict: 'key' });
       
       if (noJobsError) throw noJobsError;
       
-      // Update contact email
       const { error: emailError } = await supabase
         .from('settings')
         .upsert({ key: 'contact_email', value: siteSettings.contactEmail }, { onConflict: 'key' });
       
       if (emailError) throw emailError;
       
-      // Update contact phone
       const { error: phoneError } = await supabase
         .from('settings')
         .upsert({ key: 'contact_phone', value: siteSettings.contactPhone }, { onConflict: 'key' });
       
       if (phoneError) throw phoneError;
       
-      // Update contact address
       const { error: addressError } = await supabase
         .from('settings')
         .upsert({ key: 'contact_address', value: siteSettings.contactAddress }, { onConflict: 'key' });
       
       if (addressError) throw addressError;
       
-      // Update logo if uploaded
       if (logo) {
-        // In a real implementation, you would upload the logo to storage
-        // For this example, we'll just update the URL
         const { error: logoError } = await supabase
           .from('settings')
           .upsert({ key: 'logo_url', value: logoPreview }, { onConflict: 'key' });
@@ -291,7 +285,6 @@ const Dashboard = () => {
     
     try {
       if (editingJob) {
-        // Update existing job
         const { error } = await supabase
           .from('jobs')
           .update({
@@ -307,7 +300,6 @@ const Dashboard = () => {
           
         if (error) throw error;
         
-        // Update local state
         setJobs(jobs.map(job => job.id === editingJob.id ? editingJob : job));
         setEditingJob(null);
         
@@ -316,7 +308,6 @@ const Dashboard = () => {
           description: "The job listing has been updated successfully."
         });
       } else {
-        // Add new job
         const { data, error } = await supabase
           .from('jobs')
           .insert({
@@ -332,13 +323,11 @@ const Dashboard = () => {
           
         if (error) throw error;
         
-        // Update local state
         if (data && data.length > 0) {
           setJobs([...jobs, data[0]]);
           setStats(prev => ({ ...prev, careersCount: prev.careersCount + 1 }));
         }
         
-        // Reset form
         setNewJob({
           title: "",
           type: "",
@@ -382,7 +371,6 @@ const Dashboard = () => {
         
       if (error) throw error;
       
-      // Update local state
       setJobs(jobs.filter(job => job.id !== id));
       setStats(prev => ({ ...prev, careersCount: prev.careersCount - 1 }));
       
@@ -413,7 +401,6 @@ const Dashboard = () => {
         
       if (error) throw error;
       
-      // Update local state
       setContactMessages(contactMessages.filter(msg => msg.id !== id));
       setStats(prev => ({ ...prev, messagesCount: prev.messagesCount - 1 }));
       
@@ -433,12 +420,31 @@ const Dashboard = () => {
     }
   };
 
-  const modules = [
-    { name: "Dashboard", icon: <Home className="h-6 w-6" />, tab: "dashboard" },
-    { name: "Career", icon: <Briefcase className="h-6 w-6" />, tab: "career" },
-    { name: "Messages", icon: <MessageSquare className="h-6 w-6" />, tab: "messages" },
-    { name: "Settings", icon: <Settings className="h-6 w-6" />, tab: "settings" },
-  ];
+  const ContentManager = () => {
+    return (
+      <div>
+        <h3 className="text-2xl font-semibold mb-4">Content Manager</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-gray-500">Content List</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-2xl font-bold">0</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-gray-500">Pending Content</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-2xl font-bold">0</p>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  };
 
   if (!isLoggedIn) {
     return null;
@@ -543,6 +549,10 @@ const Dashboard = () => {
                   </Card>
                 ))}
               </div>
+            </TabsContent>
+
+            <TabsContent value="content">
+              <ContentManager />
             </TabsContent>
 
             <TabsContent value="settings">

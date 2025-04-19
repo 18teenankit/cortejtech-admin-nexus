@@ -9,6 +9,45 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      blog_posts: {
+        Row: {
+          author: string
+          content: string
+          excerpt: string | null
+          featured_image: string | null
+          id: number
+          is_published: boolean | null
+          published_at: string | null
+          slug: string
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          author: string
+          content: string
+          excerpt?: string | null
+          featured_image?: string | null
+          id?: number
+          is_published?: boolean | null
+          published_at?: string | null
+          slug: string
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          author?: string
+          content?: string
+          excerpt?: string | null
+          featured_image?: string | null
+          id?: number
+          is_published?: boolean | null
+          published_at?: string | null
+          slug?: string
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       contact_messages: {
         Row: {
           created_at: string | null
@@ -72,6 +111,99 @@ export type Database = {
           salary?: string | null
           title?: string
           type?: string
+        }
+        Relationships: []
+      }
+      pages: {
+        Row: {
+          content: string
+          id: number
+          meta_description: string | null
+          meta_title: string | null
+          slug: string
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          content: string
+          id?: number
+          meta_description?: string | null
+          meta_title?: string | null
+          slug: string
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          content?: string
+          id?: number
+          meta_description?: string | null
+          meta_title?: string | null
+          slug?: string
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      portfolio_items: {
+        Row: {
+          category: string
+          client: string | null
+          completion_date: string | null
+          created_at: string | null
+          description: string
+          id: number
+          image_url: string
+          project_url: string | null
+          title: string
+        }
+        Insert: {
+          category: string
+          client?: string | null
+          completion_date?: string | null
+          created_at?: string | null
+          description: string
+          id?: number
+          image_url: string
+          project_url?: string | null
+          title: string
+        }
+        Update: {
+          category?: string
+          client?: string | null
+          completion_date?: string | null
+          created_at?: string | null
+          description?: string
+          id?: number
+          image_url?: string
+          project_url?: string | null
+          title?: string
+        }
+        Relationships: []
+      }
+      services: {
+        Row: {
+          created_at: string | null
+          description: string
+          icon: string
+          id: number
+          is_featured: boolean | null
+          title: string
+        }
+        Insert: {
+          created_at?: string | null
+          description: string
+          icon: string
+          id?: number
+          is_featured?: boolean | null
+          title: string
+        }
+        Update: {
+          created_at?: string | null
+          description?: string
+          icon?: string
+          id?: number
+          is_featured?: boolean | null
+          title?: string
         }
         Relationships: []
       }

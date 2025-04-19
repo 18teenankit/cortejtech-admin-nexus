@@ -1,152 +1,60 @@
-import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
-import { useToast } from "@/hooks/use-toast";
-import { 
-  Phone, 
-  Mail, 
-  MapPin, 
-  Clock, 
-  Facebook, 
-  Twitter, 
-  Instagram, 
-  Linkedin,
-  Loader2 
-} from "lucide-react";
 import MainLayout from "@/components/layout/MainLayout";
+import { ContactForm } from "@/components/ContactForm";
+import { Phone, Mail, MapPin, Clock, Facebook, Twitter, Instagram, Linkedin } from "lucide-react";
+import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
+interface ContactInfo {
+  email: string;
+  phone: string;
+  address: string;
+}
+
 const Contact = () => {
-  const { toast } = useToast();
-  const [formData, setFormData] = useState({
-    name: "",
-    email: "",
-    phone: "",
-    subject: "",
-    message: ""
+  const [contactInfo, setContactInfo] = useState<ContactInfo>({
+    email: "info@cortejtech.com",
+    phone: "+91 9868-555-0123",
+    address: "123 Tech Park, Sector 42, Gurgaon, Haryana 122001, India"
   });
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [errors, setErrors] = useState<Record<string, string>>({});
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
-    
-    // Clear error when field is being edited
-    if (errors[name]) {
-      setErrors(prev => {
-        const newErrors = { ...prev };
-        delete newErrors[name];
-        return newErrors;
-      });
-    }
-  };
+  useEffect(() => {
+    const fetchContactInfo = async () => {
+      const { data: settingsData, error } = await supabase
+        .from('settings')
+        .select('key, value')
+        .in('key', ['contact_email', 'contact_phone', 'contact_address']);
 
-  const validate = () => {
-    const newErrors: Record<string, string> = {};
-    
-    if (!formData.name.trim()) {
-      newErrors.name = "Name is required";
-    }
-    
-    if (!formData.email.trim()) {
-      newErrors.email = "Email is required";
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      newErrors.email = "Please enter a valid email address";
-    }
-    
-    if (!formData.subject.trim()) {
-      newErrors.subject = "Subject is required";
-    }
-    
-    if (!formData.message.trim()) {
-      newErrors.message = "Message is required";
-    } else if (formData.message.length < 10) {
-      newErrors.message = "Message must be at least 10 characters";
-    }
-    
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
+      if (!error && settingsData) {
+        const newContactInfo = settingsData.reduce((acc: any, { key, value }) => {
+          if (key === 'contact_email') acc.email = value;
+          if (key === 'contact_phone') acc.phone = value;
+          if (key === 'contact_address') acc.address = value;
+          return acc;
+        }, { ...contactInfo });
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!validate()) {
-      return;
-    }
-    
-    setIsSubmitting(true);
-    
-    try {
-      // Try to save to Supabase
-      const { error } = await supabase
-        .from('contact_messages')
-        .insert([
-          { 
-            name: formData.name,
-            email: formData.email,
-            phone: formData.phone,
-            subject: formData.subject,
-            message: formData.message,
-            created_at: new Date().toISOString()
-          }
-        ]);
-      
-      if (error) throw error;
-      
-      toast({
-        title: "Message Sent!",
-        description: "Thank you for contacting us. We'll get back to you soon.",
-      });
-      
-      // Reset form
-      setFormData({
-        name: "",
-        email: "",
-        phone: "",
-        subject: "",
-        message: ""
-      });
-    } catch (error) {
-      console.error("Error submitting form:", error);
-      
-      toast({
-        title: "Message Sent!",
-        description: "Thank you for contacting us. We'll get back to you soon.",
-      });
-      
-      // Reset form
-      setFormData({
-        name: "",
-        email: "",
-        phone: "",
-        subject: "",
-        message: ""
-      });
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+        setContactInfo(newContactInfo);
+      }
+    };
+
+    fetchContactInfo();
+  }, []);
 
   // Contact information
-  const contactInfo = [
+  const contactDetails = [
     {
       icon: <Phone className="h-5 w-5 text-cortejtech-purple" />,
       title: "Phone",
-      details: ["+91 9868-555-0123", "+91 9868-555-0124"]
+      details: [contactInfo.phone]
     },
     {
       icon: <Mail className="h-5 w-5 text-cortejtech-purple" />,
       title: "Email",
-      details: ["info@cortejtech.com", "support@cortejtech.com"]
+      details: [contactInfo.email]
     },
     {
       icon: <MapPin className="h-5 w-5 text-cortejtech-purple" />,
       title: "Address",
-      details: ["123 Tech Park, Sector 42", "Gurgaon, Haryana 122001, India"]
+      details: [contactInfo.address]
     },
     {
       icon: <Clock className="h-5 w-5 text-cortejtech-purple" />,
@@ -186,101 +94,14 @@ const Contact = () => {
             {/* Contact Form */}
             <div>
               <h2 className="mb-6 text-2xl font-bold md:text-3xl">Send Us a Message</h2>
-              <form onSubmit={handleSubmit} className="space-y-6">
-                <div className="grid gap-6 md:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label htmlFor="name">Your Name</Label>
-                    <Input
-                      id="name"
-                      name="name"
-                      placeholder="John Doe"
-                      value={formData.name}
-                      onChange={handleChange}
-                      className={errors.name ? "border-red-500" : ""}
-                    />
-                    {errors.name && (
-                      <p className="text-sm text-red-500">{errors.name}</p>
-                    )}
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="email">Email Address</Label>
-                    <Input
-                      id="email"
-                      name="email"
-                      type="email"
-                      placeholder="john@example.com"
-                      value={formData.email}
-                      onChange={handleChange}
-                      className={errors.email ? "border-red-500" : ""}
-                    />
-                    {errors.email && (
-                      <p className="text-sm text-red-500">{errors.email}</p>
-                    )}
-                  </div>
-                </div>
-                <div className="grid gap-6 md:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label htmlFor="phone">Phone Number</Label>
-                    <Input
-                      id="phone"
-                      name="phone"
-                      placeholder="+91 98765-43210"
-                      value={formData.phone}
-                      onChange={handleChange}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="subject">Subject</Label>
-                    <Input
-                      id="subject"
-                      name="subject"
-                      placeholder="Project Inquiry"
-                      value={formData.subject}
-                      onChange={handleChange}
-                      className={errors.subject ? "border-red-500" : ""}
-                    />
-                    {errors.subject && (
-                      <p className="text-sm text-red-500">{errors.subject}</p>
-                    )}
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="message">Message</Label>
-                  <Textarea
-                    id="message"
-                    name="message"
-                    placeholder="Tell us about your project or inquiry..."
-                    rows={6}
-                    value={formData.message}
-                    onChange={handleChange}
-                    className={errors.message ? "border-red-500" : ""}
-                  />
-                  {errors.message && (
-                    <p className="text-sm text-red-500">{errors.message}</p>
-                  )}
-                </div>
-                <Button 
-                  type="submit" 
-                  className="w-full bg-cortejtech-purple hover:bg-cortejtech-purple/90 md:w-auto"
-                  disabled={isSubmitting}
-                >
-                  {isSubmitting ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Sending...
-                    </>
-                  ) : (
-                    "Send Message"
-                  )}
-                </Button>
-              </form>
+              <ContactForm />
             </div>
 
             {/* Contact Information */}
             <div>
               <h2 className="mb-6 text-2xl font-bold md:text-3xl">Contact Information</h2>
               <div className="mb-10 space-y-6">
-                {contactInfo.map((item, index) => (
+                {contactDetails.map((item, index) => (
                   <div key={index} className="flex items-start">
                     <div className="mr-4 flex h-10 w-10 items-center justify-center rounded-full bg-gray-100">
                       {item.icon}
