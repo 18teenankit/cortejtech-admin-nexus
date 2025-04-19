@@ -27,6 +27,9 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { BlogManager } from "@/components/admin/BlogManager";
+import { PortfolioManager } from "@/components/admin/PortfolioManager";
+import { ServicesManager } from "@/components/admin/ServicesManager";
 
 interface SiteSettings {
   siteName: string;
@@ -553,6 +556,18 @@ const Dashboard = () => {
 
             <TabsContent value="content">
               <ContentManager />
+            </TabsContent>
+
+            <TabsContent value="blog">
+              <BlogManager />
+            </TabsContent>
+
+            <TabsContent value="portfolio">
+              <PortfolioManager />
+            </TabsContent>
+
+            <TabsContent value="services">
+              <ServicesManager />
             </TabsContent>
 
             <TabsContent value="settings">
