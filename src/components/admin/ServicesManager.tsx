@@ -76,24 +76,9 @@ export const ServicesManager = () => {
         description: "Service updated successfully"
       });
     } else {
-      // Ensure all required fields are present
-      if (!newService.title || !newService.description || !newService.icon) {
-        toast({
-          title: "Error", 
-          description: "Please fill all required fields",
-          variant: "destructive"
-        });
-        return;
-      }
-
       const { error } = await supabase
         .from('services')
-        .insert([{
-          title: newService.title,
-          description: newService.description,
-          icon: newService.icon,
-          is_featured: newService.is_featured || false
-        }]);
+        .insert([newService]);
 
       if (error) {
         toast({
