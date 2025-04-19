@@ -1,7 +1,7 @@
 
 # CortejTech - Digital Agency Website
 
-![CortejTech Logo](/lovable-uploads/d7a01dde-60db-4fae-8ffd-89c17c9acb29.jpg)
+![CortejTech Logo](/lovable-uploads/bd45910c-d0e8-4a45-a99f-6d7e6aad54ae.png)
 
 A modern, responsive website for CortejTech, a digital agency offering Web Development, App Development, Graphic Design, and UI/UX Design services.
 
@@ -15,6 +15,8 @@ A modern, responsive website for CortejTech, a digital agency offering Web Devel
 - **Dynamic Content Management**: Admin panel to manage all website content
 - **Supabase Integration**: For backend functionality and data storage
 - **Admin Panel**: Secure admin area to manage all aspects of the website
+  - **Full CRUD Operations**: Create, Read, Update, and Delete functionality for careers and messages
+  - **Dynamic Settings**: Update site name, logo, contact information, and other settings
 - **Multiple Pages**: Home, About, Services, Portfolio, Process, Blog, Contact, Testimonials, FAQ, and Career pages
 - **Form Validation**: Contact form with client-side validation
 - **Secure Authentication**: Admin login system with secure credentials
@@ -40,7 +42,7 @@ A modern, responsive website for CortejTech, a digital agency offering Web Devel
 The project uses Supabase as the backend database with the following tables:
 
 - **Settings**: Stores site configuration values (site name, logo URL, contact info)
-- **Jobs**: Stores career/job listings
+- **Jobs**: Stores career/job listings with full CRUD functionality
 - **Contact Messages**: Stores form submissions from the contact page
 
 ## How to Use

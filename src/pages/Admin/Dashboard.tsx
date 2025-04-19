@@ -26,6 +26,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 
 interface SiteSettings {
   siteName: string;
@@ -38,6 +40,28 @@ interface SiteSettings {
 
 type SettingsType = Record<string, string>;
 
+interface Job {
+  id: number;
+  title: string;
+  type: string;
+  location: string;
+  salary: string | null;
+  description: string;
+  requirements: string[];
+  apply_link: string;
+  created_at: string | null;
+}
+
+interface ContactMessage {
+  id: number;
+  name: string;
+  email: string;
+  phone: string | null;
+  subject: string;
+  message: string;
+  created_at: string | null;
+}
+
 const Dashboard = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -46,7 +70,7 @@ const Dashboard = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [siteSettings, setSiteSettings] = useState<SiteSettings>({
     siteName: "CortejTech",
-    logo: "/lovable-uploads/d7a01dde-60db-4fae-8ffd-89c17c9acb29.jpg",
+    logo: "/lovable-uploads/bd45910c-d0e8-4a45-a99f-6d7e6aad54ae.png",
     noJobsMessage: "No openings currently, check back later. Email careers@cortejtech.com.",
     contactEmail: "info@cortejtech.com",
     contactPhone: "+91 9868-555-0123",
@@ -55,16 +79,29 @@ const Dashboard = () => {
   const [logo, setLogo] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string>(siteSettings.logo);
   
+  // Job state
+  const [jobs, setJobs] = useState<Job[]>([]);
+  const [newJob, setNewJob] = useState<Partial<Job>>({
+    title: "",
+    type: "",
+    location: "",
+    salary: "",
+    description: "",
+    requirements: [],
+    apply_link: ""
+  });
+  const [editingJob, setEditingJob] = useState<Job | null>(null);
+  const [requirementInput, setRequirementInput] = useState("");
+  
+  // Contact messages state
+  const [contactMessages, setContactMessages] = useState<ContactMessage[]>([]);
+  
   const [stats, setStats] = useState({
-    pagesCount: 10,
-    servicesCount: 8,
-    portfolioCount: 12,
-    blogsCount: 5,
-    careersCount: 2,
-    testimonialsCount: 7,
-    faqCount: 15
+    careersCount: 0,
+    messagesCount: 0
   });
 
+  // Fetch data from Supabase
   useEffect(() => {
     const loggedIn = localStorage.getItem("adminLoggedIn") === "true";
     setIsLoggedIn(loggedIn);
@@ -100,45 +137,40 @@ const Dashboard = () => {
           setLogoPreview(settings.logo_url || siteSettings.logo);
         }
         
-        const fetchCounts = async () => {
-          const tables = ['pages', 'services', 'portfolio', 'blogs', 'jobs', 'testimonials', 'faq'];
-          const newStats = { ...stats };
+        // Fetch jobs
+        const { data: jobsData, error: jobsError } = await supabase
+          .from('jobs')
+          .select('*');
           
-          for (const table of tables) {
-            try {
-              const { count, error } = await supabase
-                .from(table)
-                .select('*', { count: 'exact', head: true });
-                
-              if (!error && count !== null) {
-                switch (table) {
-                  case 'pages': newStats.pagesCount = count; break;
-                  case 'services': newStats.servicesCount = count; break;
-                  case 'portfolio': newStats.portfolioCount = count; break;
-                  case 'blogs': newStats.blogsCount = count; break;
-                  case 'jobs': newStats.careersCount = count; break;
-                  case 'testimonials': newStats.testimonialsCount = count; break;
-                  case 'faq': newStats.faqCount = count; break;
-                }
-              }
-            } catch (error) {
-              console.error(`Error fetching count for ${table}:`, error);
-            }
-          }
-          
-          setStats(newStats);
-        };
+        if (!jobsError && jobsData) {
+          setJobs(jobsData);
+          setStats(prev => ({ ...prev, careersCount: jobsData.length }));
+        }
         
-        await fetchCounts();
+        // Fetch contact messages
+        const { data: messagesData, error: messagesError } = await supabase
+          .from('contact_messages')
+          .select('*');
+          
+        if (!messagesError && messagesData) {
+          setContactMessages(messagesData);
+          setStats(prev => ({ ...prev, messagesCount: messagesData.length }));
+        }
+        
       } catch (error) {
-        console.error("Error fetching settings:", error);
+        console.error("Error fetching data:", error);
+        toast({
+          title: "Error",
+          description: "Could not fetch data from the database.",
+          variant: "destructive"
+        });
       } finally {
         setIsLoading(false);
       }
     };
 
     fetchSettings();
-  }, [navigate, siteSettings.logo, stats]);
+  }, [navigate, toast]);
 
   const handleLogout = () => {
     localStorage.removeItem("adminLoggedIn");
@@ -197,6 +229,17 @@ const Dashboard = () => {
       
       if (addressError) throw addressError;
       
+      // Update logo if uploaded
+      if (logo) {
+        // In a real implementation, you would upload the logo to storage
+        // For this example, we'll just update the URL
+        const { error: logoError } = await supabase
+          .from('settings')
+          .upsert({ key: 'logo_url', value: logoPreview }, { onConflict: 'key' });
+        
+        if (logoError) throw logoError;
+      }
+      
       toast({
         title: "Settings Saved",
         description: "Your site settings have been updated successfully."
@@ -213,18 +256,188 @@ const Dashboard = () => {
     }
   };
 
+  const handleAddRequirement = () => {
+    if (!requirementInput.trim()) return;
+    
+    if (editingJob) {
+      setEditingJob({
+        ...editingJob,
+        requirements: [...editingJob.requirements, requirementInput.trim()]
+      });
+    } else {
+      setNewJob({
+        ...newJob,
+        requirements: [...(newJob.requirements || []), requirementInput.trim()]
+      });
+    }
+    
+    setRequirementInput("");
+  };
+
+  const handleRemoveRequirement = (index: number) => {
+    if (editingJob) {
+      const updatedRequirements = [...editingJob.requirements];
+      updatedRequirements.splice(index, 1);
+      setEditingJob({ ...editingJob, requirements: updatedRequirements });
+    } else {
+      const updatedRequirements = [...(newJob.requirements || [])];
+      updatedRequirements.splice(index, 1);
+      setNewJob({ ...newJob, requirements: updatedRequirements });
+    }
+  };
+
+  const handleSaveJob = async () => {
+    setIsLoading(true);
+    
+    try {
+      if (editingJob) {
+        // Update existing job
+        const { error } = await supabase
+          .from('jobs')
+          .update({
+            title: editingJob.title,
+            type: editingJob.type,
+            location: editingJob.location,
+            salary: editingJob.salary,
+            description: editingJob.description,
+            requirements: editingJob.requirements,
+            apply_link: editingJob.apply_link
+          })
+          .eq('id', editingJob.id);
+          
+        if (error) throw error;
+        
+        // Update local state
+        setJobs(jobs.map(job => job.id === editingJob.id ? editingJob : job));
+        setEditingJob(null);
+        
+        toast({
+          title: "Job Updated",
+          description: "The job listing has been updated successfully."
+        });
+      } else {
+        // Add new job
+        const { data, error } = await supabase
+          .from('jobs')
+          .insert({
+            title: newJob.title || "",
+            type: newJob.type || "",
+            location: newJob.location || "",
+            salary: newJob.salary || null,
+            description: newJob.description || "",
+            requirements: newJob.requirements || [],
+            apply_link: newJob.apply_link || ""
+          })
+          .select();
+          
+        if (error) throw error;
+        
+        // Update local state
+        if (data && data.length > 0) {
+          setJobs([...jobs, data[0]]);
+          setStats(prev => ({ ...prev, careersCount: prev.careersCount + 1 }));
+        }
+        
+        // Reset form
+        setNewJob({
+          title: "",
+          type: "",
+          location: "",
+          salary: "",
+          description: "",
+          requirements: [],
+          apply_link: ""
+        });
+        
+        toast({
+          title: "Job Added",
+          description: "The new job listing has been added successfully."
+        });
+      }
+    } catch (error) {
+      console.error("Error saving job:", error);
+      toast({
+        title: "Error",
+        description: "There was an error saving the job listing.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleEditJob = (job: Job) => {
+    setEditingJob(job);
+    setRequirementInput("");
+  };
+
+  const handleDeleteJob = async (id: number) => {
+    setIsLoading(true);
+    
+    try {
+      const { error } = await supabase
+        .from('jobs')
+        .delete()
+        .eq('id', id);
+        
+      if (error) throw error;
+      
+      // Update local state
+      setJobs(jobs.filter(job => job.id !== id));
+      setStats(prev => ({ ...prev, careersCount: prev.careersCount - 1 }));
+      
+      toast({
+        title: "Job Deleted",
+        description: "The job listing has been deleted successfully."
+      });
+    } catch (error) {
+      console.error("Error deleting job:", error);
+      toast({
+        title: "Error",
+        description: "There was an error deleting the job listing.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleDeleteMessage = async (id: number) => {
+    setIsLoading(true);
+    
+    try {
+      const { error } = await supabase
+        .from('contact_messages')
+        .delete()
+        .eq('id', id);
+        
+      if (error) throw error;
+      
+      // Update local state
+      setContactMessages(contactMessages.filter(msg => msg.id !== id));
+      setStats(prev => ({ ...prev, messagesCount: prev.messagesCount - 1 }));
+      
+      toast({
+        title: "Message Deleted",
+        description: "The contact message has been deleted successfully."
+      });
+    } catch (error) {
+      console.error("Error deleting message:", error);
+      toast({
+        title: "Error",
+        description: "There was an error deleting the message.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const modules = [
     { name: "Dashboard", icon: <Home className="h-6 w-6" />, tab: "dashboard" },
-    { name: "Pages", icon: <FileText className="h-6 w-6" />, tab: "pages" },
-    { name: "Services", icon: <Settings className="h-6 w-6" />, tab: "services" },
-    { name: "Portfolio", icon: <Briefcase className="h-6 w-6" />, tab: "portfolio" },
-    { name: "Blog", icon: <Book className="h-6 w-6" />, tab: "blog" },
     { name: "Career", icon: <Briefcase className="h-6 w-6" />, tab: "career" },
-    { name: "Testimonials", icon: <MessageSquare className="h-6 w-6" />, tab: "testimonials" },
-    { name: "FAQ", icon: <HelpCircle className="h-6 w-6" />, tab: "faq" },
-    { name: "Media", icon: <Image className="h-6 w-6" />, tab: "media" },
+    { name: "Messages", icon: <MessageSquare className="h-6 w-6" />, tab: "messages" },
     { name: "Settings", icon: <Settings className="h-6 w-6" />, tab: "settings" },
-    { name: "Users", icon: <Users className="h-6 w-6" />, tab: "users" },
   ];
 
   if (!isLoggedIn) {
@@ -291,44 +504,28 @@ const Dashboard = () => {
             <TabsContent value="dashboard">
               <div className="mb-8">
                 <h3 className="text-2xl font-semibold mb-4">Dashboard Overview</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <Card>
                     <CardHeader className="pb-2">
-                      <CardTitle className="text-sm font-medium text-gray-500">Total Pages</CardTitle>
+                      <CardTitle className="text-sm font-medium text-gray-500">Job Listings</CardTitle>
                     </CardHeader>
                     <CardContent>
-                      <p className="text-2xl font-bold">{stats.pagesCount}</p>
+                      <p className="text-2xl font-bold">{stats.careersCount}</p>
                     </CardContent>
                   </Card>
                   <Card>
                     <CardHeader className="pb-2">
-                      <CardTitle className="text-sm font-medium text-gray-500">Services</CardTitle>
+                      <CardTitle className="text-sm font-medium text-gray-500">Contact Messages</CardTitle>
                     </CardHeader>
                     <CardContent>
-                      <p className="text-2xl font-bold">{stats.servicesCount}</p>
-                    </CardContent>
-                  </Card>
-                  <Card>
-                    <CardHeader className="pb-2">
-                      <CardTitle className="text-sm font-medium text-gray-500">Portfolio Items</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <p className="text-2xl font-bold">{stats.portfolioCount}</p>
-                    </CardContent>
-                  </Card>
-                  <Card>
-                    <CardHeader className="pb-2">
-                      <CardTitle className="text-sm font-medium text-gray-500">Blog Posts</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <p className="text-2xl font-bold">{stats.blogsCount}</p>
+                      <p className="text-2xl font-bold">{stats.messagesCount}</p>
                     </CardContent>
                   </Card>
                 </div>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {modules.slice(1, 10).map((module, index) => (
+                {modules.slice(0, 3).map((module, index) => (
                   <Card 
                     key={index} 
                     className="hover:shadow-md transition-shadow cursor-pointer"
@@ -444,72 +641,419 @@ const Dashboard = () => {
                 </CardFooter>
               </Card>
             </TabsContent>
-            
-            {["pages", "services", "portfolio", "blog", "career", "testimonials", "faq", "media", "users"].map((tab) => (
-              <TabsContent key={tab} value={tab}>
-                <Card className="mb-6">
-                  <CardHeader className="flex flex-row items-center justify-between">
-                    <div>
-                      <CardTitle className="text-2xl">{tab.charAt(0).toUpperCase() + tab.slice(1)}</CardTitle>
-                      <CardDescription>Manage your {tab} content.</CardDescription>
-                    </div>
-                    <Dialog>
-                      <DialogTrigger asChild>
-                        <Button className="bg-cortejtech-purple hover:bg-cortejtech-purple/90">
-                          <PlusCircle className="mr-2 h-4 w-4" />
-                          Add New
-                        </Button>
-                      </DialogTrigger>
-                      <DialogContent>
-                        <DialogHeader>
-                          <DialogTitle>Add New {tab.charAt(0).toUpperCase() + tab.slice(1, -1)}</DialogTitle>
-                          <DialogDescription>
-                            Create a new {tab.slice(0, -1)} item for your website.
-                          </DialogDescription>
-                        </DialogHeader>
-                        <div className="space-y-4 py-4">
+
+            <TabsContent value="career">
+              <Card className="mb-6">
+                <CardHeader className="flex flex-row items-center justify-between">
+                  <div>
+                    <CardTitle className="text-2xl">Career Opportunities</CardTitle>
+                    <CardDescription>Manage job listings for your company.</CardDescription>
+                  </div>
+                  <Dialog>
+                    <DialogTrigger asChild>
+                      <Button className="bg-cortejtech-purple hover:bg-cortejtech-purple/90">
+                        <PlusCircle className="mr-2 h-4 w-4" />
+                        Add New Job
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="sm:max-w-[600px]">
+                      <DialogHeader>
+                        <DialogTitle>Add New Job Listing</DialogTitle>
+                        <DialogDescription>
+                          Create a new job opportunity for your company.
+                        </DialogDescription>
+                      </DialogHeader>
+                      <div className="space-y-4 py-4 max-h-[60vh] overflow-y-auto">
+                        <div className="grid grid-cols-2 gap-4">
                           <div className="space-y-2">
-                            <Label htmlFor="title">Title</Label>
-                            <Input id="title" placeholder="Enter title" />
+                            <Label htmlFor="jobTitle">Job Title</Label>
+                            <Input 
+                              id="jobTitle" 
+                              placeholder="E.g., Senior Frontend Developer"
+                              value={newJob.title}
+                              onChange={(e) => setNewJob({...newJob, title: e.target.value})}
+                            />
                           </div>
                           <div className="space-y-2">
-                            <Label htmlFor="content">Content</Label>
-                            <Textarea id="content" placeholder="Enter content" rows={5} />
+                            <Label htmlFor="jobType">Job Type</Label>
+                            <Input 
+                              id="jobType" 
+                              placeholder="E.g., Full-time, Part-time"
+                              value={newJob.type}
+                              onChange={(e) => setNewJob({...newJob, type: e.target.value})}
+                            />
                           </div>
                         </div>
-                        <DialogFooter>
-                          <Button variant="outline">Cancel</Button>
-                          <Button className="bg-cortejtech-purple hover:bg-cortejtech-purple/90">Save</Button>
-                        </DialogFooter>
-                      </DialogContent>
-                    </Dialog>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="rounded-lg border">
-                      <div className="flex items-center justify-between border-b px-4 py-3">
-                        <div className="font-medium">Title</div>
-                        <div className="font-medium">Actions</div>
-                      </div>
-                      <div className="divide-y">
-                        {[1, 2, 3].map((item) => (
-                          <div key={item} className="flex items-center justify-between px-4 py-3">
-                            <div>Example {tab.charAt(0).toUpperCase() + tab.slice(1, -1)} {item}</div>
-                            <div className="flex space-x-2">
-                              <Button variant="ghost" size="sm">
-                                <Edit className="h-4 w-4" />
-                              </Button>
-                              <Button variant="ghost" size="sm">
-                                <Trash2 className="h-4 w-4 text-red-500" />
-                              </Button>
-                            </div>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label htmlFor="jobLocation">Location</Label>
+                            <Input 
+                              id="jobLocation" 
+                              placeholder="E.g., Remote, New York, NY"
+                              value={newJob.location}
+                              onChange={(e) => setNewJob({...newJob, location: e.target.value})}
+                            />
                           </div>
-                        ))}
+                          <div className="space-y-2">
+                            <Label htmlFor="jobSalary">Salary (Optional)</Label>
+                            <Input 
+                              id="jobSalary" 
+                              placeholder="E.g., $80,000 - $100,000"
+                              value={newJob.salary || ""}
+                              onChange={(e) => setNewJob({...newJob, salary: e.target.value})}
+                            />
+                          </div>
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="jobDescription">Job Description</Label>
+                          <Textarea 
+                            id="jobDescription" 
+                            placeholder="Detailed description of the role and responsibilities"
+                            rows={5}
+                            value={newJob.description}
+                            onChange={(e) => setNewJob({...newJob, description: e.target.value})}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="jobRequirements">Requirements</Label>
+                          <div className="flex space-x-2">
+                            <Input 
+                              id="jobRequirements" 
+                              placeholder="Add a requirement and press Enter"
+                              value={requirementInput}
+                              onChange={(e) => setRequirementInput(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                  e.preventDefault();
+                                  handleAddRequirement();
+                                }
+                              }}
+                            />
+                            <Button 
+                              type="button" 
+                              onClick={handleAddRequirement}
+                              className="bg-cortejtech-purple hover:bg-cortejtech-purple/90"
+                            >
+                              Add
+                            </Button>
+                          </div>
+                          {newJob.requirements && newJob.requirements.length > 0 && (
+                            <ul className="mt-2 space-y-1">
+                              {newJob.requirements.map((req, index) => (
+                                <li key={index} className="flex items-center justify-between bg-gray-100 px-3 py-2 rounded-md">
+                                  <span>{req}</span>
+                                  <Button 
+                                    variant="ghost" 
+                                    size="sm" 
+                                    onClick={() => handleRemoveRequirement(index)}
+                                    className="h-6 w-6 p-0 text-red-500"
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </li>
+                              ))}
+                            </ul>
+                          )}
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="applyLink">Apply Link/Email</Label>
+                          <Input 
+                            id="applyLink" 
+                            placeholder="E.g., https://apply.com or email@example.com"
+                            value={newJob.apply_link}
+                            onChange={(e) => setNewJob({...newJob, apply_link: e.target.value})}
+                          />
+                        </div>
                       </div>
+                      <DialogFooter>
+                        <Button variant="outline" onClick={() => {
+                          setNewJob({
+                            title: "",
+                            type: "",
+                            location: "",
+                            salary: "",
+                            description: "",
+                            requirements: [],
+                            apply_link: ""
+                          });
+                          setRequirementInput("");
+                        }}>
+                          Cancel
+                        </Button>
+                        <Button 
+                          onClick={handleSaveJob}
+                          disabled={!newJob.title || !newJob.type || !newJob.location || !newJob.description || !newJob.apply_link || isLoading}
+                          className="bg-cortejtech-purple hover:bg-cortejtech-purple/90"
+                        >
+                          {isLoading ? "Saving..." : "Save Job"}
+                        </Button>
+                      </DialogFooter>
+                    </DialogContent>
+                  </Dialog>
+                </CardHeader>
+                <CardContent>
+                  {jobs.length === 0 ? (
+                    <div className="text-center py-8 text-gray-500">
+                      No job listings yet. Click "Add New Job" to create your first job posting.
                     </div>
-                  </CardContent>
-                </Card>
-              </TabsContent>
-            ))}
+                  ) : (
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Title</TableHead>
+                          <TableHead>Type</TableHead>
+                          <TableHead>Location</TableHead>
+                          <TableHead>Actions</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {jobs.map((job) => (
+                          <TableRow key={job.id}>
+                            <TableCell className="font-medium">{job.title}</TableCell>
+                            <TableCell>{job.type}</TableCell>
+                            <TableCell>{job.location}</TableCell>
+                            <TableCell>
+                              <div className="flex space-x-2">
+                                <Dialog>
+                                  <DialogTrigger asChild>
+                                    <Button 
+                                      variant="ghost" 
+                                      size="sm"
+                                      onClick={() => handleEditJob(job)}
+                                    >
+                                      <Edit className="h-4 w-4" />
+                                    </Button>
+                                  </DialogTrigger>
+                                  <DialogContent className="sm:max-w-[600px]">
+                                    <DialogHeader>
+                                      <DialogTitle>Edit Job Listing</DialogTitle>
+                                      <DialogDescription>
+                                        Update the job details and requirements.
+                                      </DialogDescription>
+                                    </DialogHeader>
+                                    <div className="space-y-4 py-4 max-h-[60vh] overflow-y-auto">
+                                      <div className="grid grid-cols-2 gap-4">
+                                        <div className="space-y-2">
+                                          <Label htmlFor="edit-jobTitle">Job Title</Label>
+                                          <Input 
+                                            id="edit-jobTitle" 
+                                            value={editingJob?.title || ""}
+                                            onChange={(e) => setEditingJob(editingJob ? {...editingJob, title: e.target.value} : null)}
+                                          />
+                                        </div>
+                                        <div className="space-y-2">
+                                          <Label htmlFor="edit-jobType">Job Type</Label>
+                                          <Input 
+                                            id="edit-jobType" 
+                                            value={editingJob?.type || ""}
+                                            onChange={(e) => setEditingJob(editingJob ? {...editingJob, type: e.target.value} : null)}
+                                          />
+                                        </div>
+                                      </div>
+                                      <div className="grid grid-cols-2 gap-4">
+                                        <div className="space-y-2">
+                                          <Label htmlFor="edit-jobLocation">Location</Label>
+                                          <Input 
+                                            id="edit-jobLocation" 
+                                            value={editingJob?.location || ""}
+                                            onChange={(e) => setEditingJob(editingJob ? {...editingJob, location: e.target.value} : null)}
+                                          />
+                                        </div>
+                                        <div className="space-y-2">
+                                          <Label htmlFor="edit-jobSalary">Salary (Optional)</Label>
+                                          <Input 
+                                            id="edit-jobSalary" 
+                                            value={editingJob?.salary || ""}
+                                            onChange={(e) => setEditingJob(editingJob ? {...editingJob, salary: e.target.value} : null)}
+                                          />
+                                        </div>
+                                      </div>
+                                      <div className="space-y-2">
+                                        <Label htmlFor="edit-jobDescription">Job Description</Label>
+                                        <Textarea 
+                                          id="edit-jobDescription" 
+                                          rows={5}
+                                          value={editingJob?.description || ""}
+                                          onChange={(e) => setEditingJob(editingJob ? {...editingJob, description: e.target.value} : null)}
+                                        />
+                                      </div>
+                                      <div className="space-y-2">
+                                        <Label htmlFor="edit-jobRequirements">Requirements</Label>
+                                        <div className="flex space-x-2">
+                                          <Input 
+                                            id="edit-jobRequirements" 
+                                            placeholder="Add a requirement and press Enter"
+                                            value={requirementInput}
+                                            onChange={(e) => setRequirementInput(e.target.value)}
+                                            onKeyDown={(e) => {
+                                              if (e.key === 'Enter') {
+                                                e.preventDefault();
+                                                handleAddRequirement();
+                                              }
+                                            }}
+                                          />
+                                          <Button 
+                                            type="button" 
+                                            onClick={handleAddRequirement}
+                                            className="bg-cortejtech-purple hover:bg-cortejtech-purple/90"
+                                          >
+                                            Add
+                                          </Button>
+                                        </div>
+                                        {editingJob && editingJob.requirements.length > 0 && (
+                                          <ul className="mt-2 space-y-1">
+                                            {editingJob.requirements.map((req, index) => (
+                                              <li key={index} className="flex items-center justify-between bg-gray-100 px-3 py-2 rounded-md">
+                                                <span>{req}</span>
+                                                <Button 
+                                                  variant="ghost" 
+                                                  size="sm" 
+                                                  onClick={() => handleRemoveRequirement(index)}
+                                                  className="h-6 w-6 p-0 text-red-500"
+                                                >
+                                                  <Trash2 className="h-4 w-4" />
+                                                </Button>
+                                              </li>
+                                            ))}
+                                          </ul>
+                                        )}
+                                      </div>
+                                      <div className="space-y-2">
+                                        <Label htmlFor="edit-applyLink">Apply Link/Email</Label>
+                                        <Input 
+                                          id="edit-applyLink" 
+                                          value={editingJob?.apply_link || ""}
+                                          onChange={(e) => setEditingJob(editingJob ? {...editingJob, apply_link: e.target.value} : null)}
+                                        />
+                                      </div>
+                                    </div>
+                                    <DialogFooter>
+                                      <Button 
+                                        variant="outline" 
+                                        onClick={() => setEditingJob(null)}
+                                      >
+                                        Cancel
+                                      </Button>
+                                      <Button 
+                                        onClick={handleSaveJob}
+                                        disabled={!editingJob?.title || !editingJob?.type || !editingJob?.location || !editingJob?.description || !editingJob?.apply_link || isLoading}
+                                        className="bg-cortejtech-purple hover:bg-cortejtech-purple/90"
+                                      >
+                                        {isLoading ? "Saving..." : "Update Job"}
+                                      </Button>
+                                    </DialogFooter>
+                                  </DialogContent>
+                                </Dialog>
+                                
+                                <AlertDialog>
+                                  <AlertDialogTrigger asChild>
+                                    <Button variant="ghost" size="sm" className="text-red-500">
+                                      <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                  </AlertDialogTrigger>
+                                  <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                      <AlertDialogTitle>Delete Job Listing</AlertDialogTitle>
+                                      <AlertDialogDescription>
+                                        Are you sure you want to delete this job listing? This action cannot be undone.
+                                      </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                      <AlertDialogAction 
+                                        onClick={() => handleDeleteJob(job.id)}
+                                        className="bg-red-600 hover:bg-red-700"
+                                      >
+                                        Delete
+                                      </AlertDialogAction>
+                                    </AlertDialogFooter>
+                                  </AlertDialogContent>
+                                </AlertDialog>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+            
+            <TabsContent value="messages">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-2xl">Contact Messages</CardTitle>
+                  <CardDescription>View and manage messages received from the contact form.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {contactMessages.length === 0 ? (
+                    <div className="text-center py-8 text-gray-500">
+                      No messages received yet.
+                    </div>
+                  ) : (
+                    <div className="space-y-6">
+                      {contactMessages.map((msg) => (
+                        <Card key={msg.id} className="border-l-4 border-cortejtech-purple">
+                          <CardHeader className="pb-2">
+                            <div className="flex justify-between items-start">
+                              <div>
+                                <CardTitle>{msg.subject}</CardTitle>
+                                <CardDescription className="flex items-center mt-1">
+                                  <span className="font-medium">{msg.name}</span>
+                                  <span className="mx-2">•</span>
+                                  <span className="text-blue-600">{msg.email}</span>
+                                  {msg.phone && (
+                                    <>
+                                      <span className="mx-2">•</span>
+                                      <span>{msg.phone}</span>
+                                    </>
+                                  )}
+                                </CardDescription>
+                              </div>
+                              <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                  <Button variant="ghost" size="sm" className="text-red-500">
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle>Delete Message</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                      Are you sure you want to delete this message? This action cannot be undone.
+                                    </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                    <AlertDialogAction 
+                                      onClick={() => handleDeleteMessage(msg.id)}
+                                      className="bg-red-600 hover:bg-red-700"
+                                    >
+                                      Delete
+                                    </AlertDialogAction>
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
+                            </div>
+                          </CardHeader>
+                          <CardContent className="pt-1">
+                            <div className="whitespace-pre-wrap text-gray-700">{msg.message}</div>
+                          </CardContent>
+                          <CardFooter className="border-t pt-3 text-xs text-gray-500">
+                            {msg.created_at && (
+                              <time dateTime={msg.created_at}>
+                                {new Date(msg.created_at).toLocaleString()}
+                              </time>
+                            )}
+                          </CardFooter>
+                        </Card>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
           </Tabs>
         </div>
       </main>
