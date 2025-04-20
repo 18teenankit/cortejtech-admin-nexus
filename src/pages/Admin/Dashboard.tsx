@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import AdminLayout from "@/components/layout/AdminLayout";
+import { useNavigate } from "react-router-dom";
 import { 
   Home, 
   Users, 
@@ -10,8 +10,10 @@ import {
   Briefcase, 
   MessageSquare,
   HelpCircle,
-  PlusCircle,
+  LogOut,
+  Upload,
   Edit,
+  PlusCircle,
   Trash2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -60,7 +62,9 @@ interface ContactMessage {
 }
 
 const Dashboard = () => {
+  const navigate = useNavigate();
   const { toast } = useToast();
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [activeTab, setActiveTab] = useState("dashboard");
   const [isLoading, setIsLoading] = useState(true);
   const [siteSettings, setSiteSettings] = useState<SiteSettings>({
@@ -91,13 +95,26 @@ const Dashboard = () => {
   
   const [stats, setStats] = useState({
     careersCount: 0,
-    messagesCount: 0,
-    servicesCount: 0,
-    portfolioCount: 0,
-    blogsCount: 0
+    messagesCount: 0
   });
 
+  const modules = [
+    { name: "Dashboard", icon: <Home className="h-6 w-6" />, tab: "dashboard" },
+    { name: "Content", icon: <FileText className="h-6 w-6" />, tab: "content" },
+    { name: "Career", icon: <Briefcase className="h-6 w-6" />, tab: "career" },
+    { name: "Messages", icon: <MessageSquare className="h-6 w-6" />, tab: "messages" },
+    { name: "Settings", icon: <Settings className="h-6 w-6" />, tab: "settings" },
+  ];
+
   useEffect(() => {
+    const loggedIn = localStorage.getItem("adminLoggedIn") === "true";
+    setIsLoggedIn(loggedIn);
+
+    if (!loggedIn) {
+      navigate("/ankit/admin");
+      return;
+    }
+
     const fetchSettings = async () => {
       try {
         setIsLoading(true);
@@ -141,26 +158,6 @@ const Dashboard = () => {
           setContactMessages(messagesData);
           setStats(prev => ({ ...prev, messagesCount: messagesData.length }));
         }
-
-        // Get counts for other modules
-        const { count: servicesCount } = await supabase
-          .from('services')
-          .select('*', { count: 'exact', head: true });
-          
-        const { count: portfolioCount } = await supabase
-          .from('portfolio_items')
-          .select('*', { count: 'exact', head: true });
-          
-        const { count: blogsCount } = await supabase
-          .from('blog_posts')
-          .select('*', { count: 'exact', head: true });
-        
-        setStats(prev => ({
-          ...prev,
-          servicesCount: servicesCount || 0,
-          portfolioCount: portfolioCount || 0,
-          blogsCount: blogsCount || 0
-        }));
         
       } catch (error) {
         console.error("Error fetching data:", error);
@@ -175,7 +172,12 @@ const Dashboard = () => {
     };
 
     fetchSettings();
-  }, [toast]);
+  }, [navigate, toast]);
+
+  const handleLogout = () => {
+    localStorage.removeItem("adminLoggedIn");
+    navigate("/ankit/admin");
+  };
 
   const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -418,464 +420,655 @@ const Dashboard = () => {
     }
   };
 
+  const ContentManager = () => {
+    return (
+      <div>
+        <h3 className="text-2xl font-semibold mb-4">Content Manager</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-gray-500">Content List</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-2xl font-bold">0</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-gray-500">Pending Content</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-2xl font-bold">0</p>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  };
+
+  if (!isLoggedIn) {
+    return null;
+  }
+
   return (
-    <AdminLayout activeTab="dashboard">
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsContent value="dashboard">
-          <div className="mb-8">
-            <h3 className="text-2xl font-semibold mb-4">Dashboard Overview</h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium text-gray-500">Job Listings</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-2xl font-bold">{stats.careersCount}</p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium text-gray-500">Services</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-2xl font-bold">{stats.servicesCount}</p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium text-gray-500">Contact Messages</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-2xl font-bold">{stats.messagesCount}</p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium text-gray-500">Portfolio Items</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-2xl font-bold">{stats.portfolioCount}</p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium text-gray-500">Blog Posts</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-2xl font-bold">{stats.blogsCount}</p>
-                </CardContent>
-              </Card>
+    <div className="min-h-screen flex">
+      <aside className="bg-cortejtech-purple text-white w-64 flex-shrink-0">
+        <div className="p-6">
+          <div className="flex items-center space-x-3">
+            <img 
+              src={siteSettings.logo} 
+              alt="CortejTech Logo" 
+              className="h-8 w-auto"
+            />
+            <h1 className="text-xl font-bold text-white">
+              Admin Panel
+            </h1>
+          </div>
+        </div>
+        <nav className="mt-6">
+          <ul>
+            {modules.map((module, index) => (
+              <li key={index}>
+                <button 
+                  onClick={() => setActiveTab(module.tab)}
+                  className={`w-full flex items-center px-6 py-3 text-white hover:bg-cortejtech-purple/80 ${
+                    activeTab === module.tab ? 'bg-cortejtech-purple/70' : ''
+                  }`}
+                >
+                  {module.icon}
+                  <span className="ml-3">{module.name}</span>
+                </button>
+              </li>
+            ))}
+            <li className="mt-6">
+              <button 
+                onClick={handleLogout}
+                className="flex items-center w-full px-6 py-3 text-white hover:bg-cortejtech-purple/80"
+              >
+                <LogOut className="h-6 w-6" />
+                <span className="ml-3">Log Out</span>
+              </button>
+            </li>
+          </ul>
+        </nav>
+      </aside>
+
+      <main className="flex-grow bg-gray-50">
+        <header className="bg-white shadow-sm p-4">
+          <div className="flex justify-between items-center">
+            <h2 className="text-xl font-semibold">
+              {modules.find(m => m.tab === activeTab)?.name || "Dashboard"}
+            </h2>
+            <div>
+              <span className="text-gray-600">Welcome, Admin</span>
             </div>
           </div>
+        </header>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <Card 
-              className="hover:shadow-md transition-shadow cursor-pointer"
-              onClick={() => window.location.href = "/ankit/admin/about"}
-            >
-              <CardContent className="p-6 flex items-center">
-                <div className="rounded-full bg-purple-100 p-3 mr-4">
-                  <FileText className="h-6 w-6" />
+        <div className="p-6">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+            <TabsContent value="dashboard">
+              <div className="mb-8">
+                <h3 className="text-2xl font-semibold mb-4">Dashboard Overview</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <Card>
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-sm font-medium text-gray-500">Job Listings</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-2xl font-bold">{stats.careersCount}</p>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-sm font-medium text-gray-500">Contact Messages</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-2xl font-bold">{stats.messagesCount}</p>
+                    </CardContent>
+                  </Card>
                 </div>
-                <div>
-                  <h3 className="font-semibold text-lg">About Us</h3>
-                  <p className="text-gray-500 text-sm">Manage about us content</p>
-                </div>
-              </CardContent>
-            </Card>
-            <Card 
-              className="hover:shadow-md transition-shadow cursor-pointer"
-              onClick={() => window.location.href = "/ankit/admin/services"}
-            >
-              <CardContent className="p-6 flex items-center">
-                <div className="rounded-full bg-purple-100 p-3 mr-4">
-                  <Briefcase className="h-6 w-6" />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-lg">Services</h3>
-                  <p className="text-gray-500 text-sm">Manage service offerings</p>
-                </div>
-              </CardContent>
-            </Card>
-            <Card 
-              className="hover:shadow-md transition-shadow cursor-pointer"
-              onClick={() => window.location.href = "/ankit/admin/portfolio"}
-            >
-              <CardContent className="p-6 flex items-center">
-                <div className="rounded-full bg-purple-100 p-3 mr-4">
-                  <Image className="h-6 w-6" />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-lg">Portfolio</h3>
-                  <p className="text-gray-500 text-sm">Manage portfolio projects</p>
-                </div>
-              </CardContent>
-            </Card>
-            <Card 
-              className="hover:shadow-md transition-shadow cursor-pointer"
-              onClick={() => window.location.href = "/ankit/admin/blog"}
-            >
-              <CardContent className="p-6 flex items-center">
-                <div className="rounded-full bg-purple-100 p-3 mr-4">
-                  <Book className="h-6 w-6" />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-lg">Blog</h3>
-                  <p className="text-gray-500 text-sm">Manage blog posts</p>
-                </div>
-              </CardContent>
-            </Card>
-            <Card 
-              className="hover:shadow-md transition-shadow cursor-pointer"
-              onClick={() => setActiveTab("career")}
-            >
-              <CardContent className="p-6 flex items-center">
-                <div className="rounded-full bg-purple-100 p-3 mr-4">
-                  <Users className="h-6 w-6" />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-lg">Career</h3>
-                  <p className="text-gray-500 text-sm">Manage job listings</p>
-                </div>
-              </CardContent>
-            </Card>
-            <Card 
-              className="hover:shadow-md transition-shadow cursor-pointer"
-              onClick={() => setActiveTab("messages")}
-            >
-              <CardContent className="p-6 flex items-center">
-                <div className="rounded-full bg-purple-100 p-3 mr-4">
-                  <MessageSquare className="h-6 w-6" />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-lg">Messages</h3>
-                  <p className="text-gray-500 text-sm">View contact messages</p>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </TabsContent>
-
-        <TabsContent value="career">
-          <Card className="mb-6">
-            <CardHeader className="flex flex-row items-center justify-between">
-              <div>
-                <CardTitle className="text-2xl">Career Opportunities</CardTitle>
-                <CardDescription>Manage job listings for your company.</CardDescription>
               </div>
-              <Dialog>
-                <DialogTrigger asChild>
-                  <Button className="bg-cortejtech-purple hover:bg-cortejtech-purple/90">
-                    <PlusCircle className="mr-2 h-4 w-4" />
-                    Add New Job
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="sm:max-w-[600px]">
-                  <DialogHeader>
-                    <DialogTitle>Add New Job Listing</DialogTitle>
-                    <DialogDescription>
-                      Create a new job opportunity for your company.
-                    </DialogDescription>
-                  </DialogHeader>
-                  <div className="space-y-4 py-4 max-h-[60vh] overflow-y-auto">
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="jobTitle">Job Title</Label>
-                        <Input 
-                          id="jobTitle" 
-                          placeholder="E.g., Senior Frontend Developer"
-                          value={newJob.title}
-                          onChange={(e) => setNewJob({...newJob, title: e.target.value})}
+
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {modules.slice(0, 3).map((module, index) => (
+                  <Card 
+                    key={index} 
+                    className="hover:shadow-md transition-shadow cursor-pointer"
+                    onClick={() => setActiveTab(module.tab)}
+                  >
+                    <CardContent className="p-6 flex items-center">
+                      <div className="rounded-full bg-purple-100 p-3 mr-4">
+                        {module.icon}
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-lg">{module.name}</h3>
+                        <p className="text-gray-500 text-sm">Manage {module.name.toLowerCase()}</p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </TabsContent>
+
+            <TabsContent value="content">
+              <ContentManager />
+            </TabsContent>
+
+            <TabsContent value="settings">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Site Settings</CardTitle>
+                  <CardDescription>Manage your site settings and branding elements.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div className="space-y-2">
+                    <Label htmlFor="siteName">Site Name</Label>
+                    <Input 
+                      id="siteName" 
+                      value={siteSettings.siteName} 
+                      onChange={(e) => setSiteSettings({...siteSettings, siteName: e.target.value})}
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label>Logo</Label>
+                    <div className="flex items-center space-x-4">
+                      <div className="h-20 w-20 rounded-md overflow-hidden bg-gray-100 flex items-center justify-center">
+                        <img 
+                          src={logoPreview} 
+                          alt="Logo Preview" 
+                          className="max-h-full max-w-full object-contain"
                         />
                       </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="jobType">Job Type</Label>
+                      <div>
+                        <Label htmlFor="logo" className="cursor-pointer inline-flex items-center px-4 py-2 bg-cortejtech-purple text-white rounded-md hover:bg-cortejtech-purple/90">
+                          <Upload className="mr-2 h-4 w-4" /> Upload Logo
+                        </Label>
                         <Input 
-                          id="jobType" 
-                          placeholder="E.g., Full-time, Part-time"
-                          value={newJob.type}
-                          onChange={(e) => setNewJob({...newJob, type: e.target.value})}
+                          id="logo" 
+                          type="file" 
+                          className="hidden" 
+                          accept="image/*"
+                          onChange={handleLogoChange}
                         />
+                        <p className="text-xs text-gray-500 mt-1">Recommended size: 200x200 pixels</p>
                       </div>
                     </div>
-                    <div className="grid grid-cols-2 gap-4">
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="noJobsMessage">No Jobs Available Message</Label>
+                    <Textarea 
+                      id="noJobsMessage" 
+                      value={siteSettings.noJobsMessage}
+                      onChange={(e) => setSiteSettings({...siteSettings, noJobsMessage: e.target.value})}
+                      rows={3}
+                    />
+                    <p className="text-xs text-gray-500">This message will be displayed when there are no job listings available.</p>
+                  </div>
+                  
+                  <div className="space-y-4 border-t pt-4">
+                    <h4 className="font-semibold">Contact Information</h4>
+                    <div className="grid gap-4 md:grid-cols-2">
                       <div className="space-y-2">
-                        <Label htmlFor="jobLocation">Location</Label>
+                        <Label htmlFor="contactEmail">Email Address</Label>
                         <Input 
-                          id="jobLocation" 
-                          placeholder="E.g., Remote, New York, NY"
-                          value={newJob.location}
-                          onChange={(e) => setNewJob({...newJob, location: e.target.value})}
+                          id="contactEmail" 
+                          value={siteSettings.contactEmail}
+                          onChange={(e) => setSiteSettings({...siteSettings, contactEmail: e.target.value})}
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="jobSalary">Salary (Optional)</Label>
+                        <Label htmlFor="contactPhone">Phone Number</Label>
                         <Input 
-                          id="jobSalary" 
-                          placeholder="E.g., $80,000 - $100,000"
-                          value={newJob.salary || ""}
-                          onChange={(e) => setNewJob({...newJob, salary: e.target.value})}
+                          id="contactPhone" 
+                          value={siteSettings.contactPhone}
+                          onChange={(e) => setSiteSettings({...siteSettings, contactPhone: e.target.value})}
                         />
                       </div>
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="jobDescription">Job Description</Label>
+                      <Label htmlFor="contactAddress">Address</Label>
                       <Textarea 
-                        id="jobDescription" 
-                        placeholder="Detailed description of the role and responsibilities"
-                        rows={5}
-                        value={newJob.description}
-                        onChange={(e) => setNewJob({...newJob, description: e.target.value})}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="jobRequirements">Requirements</Label>
-                      <div className="flex space-x-2">
-                        <Input 
-                          id="jobRequirements" 
-                          placeholder="Add a requirement and press Enter"
-                          value={requirementInput}
-                          onChange={(e) => setRequirementInput(e.target.value)}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter') {
-                              e.preventDefault();
-                              handleAddRequirement();
-                            }
-                          }}
-                        />
-                        <Button 
-                          type="button" 
-                          onClick={handleAddRequirement}
-                          className="bg-cortejtech-purple hover:bg-cortejtech-purple/90"
-                        >
-                          Add
-                        </Button>
-                      </div>
-                      {newJob.requirements && newJob.requirements.length > 0 && (
-                        <ul className="mt-2 space-y-1">
-                          {newJob.requirements.map((req, index) => (
-                            <li key={index} className="flex items-center justify-between bg-gray-100 px-3 py-2 rounded-md">
-                              <span>{req}</span>
-                              <Button 
-                                variant="ghost" 
-                                size="sm" 
-                                onClick={() => handleRemoveRequirement(index)}
-                                className="h-6 w-6 p-0 text-red-500"
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </li>
-                          ))}
-                        </ul>
-                      )}
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="applyLink">Apply Link/Email</Label>
-                      <Input 
-                        id="applyLink" 
-                        placeholder="E.g., https://apply.com or email@example.com"
-                        value={newJob.apply_link}
-                        onChange={(e) => setNewJob({...newJob, apply_link: e.target.value})}
+                        id="contactAddress" 
+                        value={siteSettings.contactAddress}
+                        onChange={(e) => setSiteSettings({...siteSettings, contactAddress: e.target.value})}
+                        rows={2}
                       />
                     </div>
                   </div>
-                  <DialogFooter>
-                    <Button variant="outline" onClick={() => {
-                      setNewJob({
-                        title: "",
-                        type: "",
-                        location: "",
-                        salary: "",
-                        description: "",
-                        requirements: [],
-                        apply_link: ""
-                      });
-                      setRequirementInput("");
-                    }}>
-                      Cancel
-                    </Button>
-                    <Button 
-                      onClick={handleSaveJob}
-                      disabled={!newJob.title || !newJob.type || !newJob.location || !newJob.description || !newJob.apply_link || isLoading}
-                      className="bg-cortejtech-purple hover:bg-cortejtech-purple/90"
-                    >
-                      {isLoading ? "Saving..." : "Save Job"}
-                    </Button>
-                  </DialogFooter>
-                </DialogContent>
-              </Dialog>
-            </CardHeader>
-            <CardContent>
-              {jobs.length === 0 ? (
-                <div className="text-center py-8 text-gray-500">
-                  No job listings yet. Click "Add New Job" to create your first job posting.
-                </div>
-              ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Title</TableHead>
-                      <TableHead>Type</TableHead>
-                      <TableHead>Location</TableHead>
-                      <TableHead>Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {jobs.map((job) => (
-                      <TableRow key={job.id}>
-                        <TableCell className="font-medium">{job.title}</TableCell>
-                        <TableCell>{job.type}</TableCell>
-                        <TableCell>{job.location}</TableCell>
-                        <TableCell>
+                </CardContent>
+                <CardFooter className="flex justify-end space-x-2 bg-gray-50 border-t p-6">
+                  <Button variant="outline" onClick={() => setActiveTab("dashboard")}>Cancel</Button>
+                  <Button 
+                    onClick={handleSaveSettings}
+                    className="bg-cortejtech-purple hover:bg-cortejtech-purple/90"
+                    disabled={isLoading}
+                  >
+                    {isLoading ? "Saving..." : "Save Changes"}
+                  </Button>
+                </CardFooter>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="career">
+              <Card className="mb-6">
+                <CardHeader className="flex flex-row items-center justify-between">
+                  <div>
+                    <CardTitle className="text-2xl">Career Opportunities</CardTitle>
+                    <CardDescription>Manage job listings for your company.</CardDescription>
+                  </div>
+                  <Dialog>
+                    <DialogTrigger asChild>
+                      <Button className="bg-cortejtech-purple hover:bg-cortejtech-purple/90">
+                        <PlusCircle className="mr-2 h-4 w-4" />
+                        Add New Job
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="sm:max-w-[600px]">
+                      <DialogHeader>
+                        <DialogTitle>Add New Job Listing</DialogTitle>
+                        <DialogDescription>
+                          Create a new job opportunity for your company.
+                        </DialogDescription>
+                      </DialogHeader>
+                      <div className="space-y-4 py-4 max-h-[60vh] overflow-y-auto">
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label htmlFor="jobTitle">Job Title</Label>
+                            <Input 
+                              id="jobTitle" 
+                              placeholder="E.g., Senior Frontend Developer"
+                              value={newJob.title}
+                              onChange={(e) => setNewJob({...newJob, title: e.target.value})}
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="jobType">Job Type</Label>
+                            <Input 
+                              id="jobType" 
+                              placeholder="E.g., Full-time, Part-time"
+                              value={newJob.type}
+                              onChange={(e) => setNewJob({...newJob, type: e.target.value})}
+                            />
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label htmlFor="jobLocation">Location</Label>
+                            <Input 
+                              id="jobLocation" 
+                              placeholder="E.g., Remote, New York, NY"
+                              value={newJob.location}
+                              onChange={(e) => setNewJob({...newJob, location: e.target.value})}
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="jobSalary">Salary (Optional)</Label>
+                            <Input 
+                              id="jobSalary" 
+                              placeholder="E.g., $80,000 - $100,000"
+                              value={newJob.salary || ""}
+                              onChange={(e) => setNewJob({...newJob, salary: e.target.value})}
+                            />
+                          </div>
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="jobDescription">Job Description</Label>
+                          <Textarea 
+                            id="jobDescription" 
+                            placeholder="Detailed description of the role and responsibilities"
+                            rows={5}
+                            value={newJob.description}
+                            onChange={(e) => setNewJob({...newJob, description: e.target.value})}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="jobRequirements">Requirements</Label>
                           <div className="flex space-x-2">
-                            <Dialog>
-                              <DialogTrigger asChild>
-                                <Button 
-                                  variant="ghost" 
-                                  size="sm"
-                                  onClick={() => handleEditJob(job)}
-                                >
-                                  <Edit className="h-4 w-4" />
-                                </Button>
-                              </DialogTrigger>
-                              <DialogContent className="sm:max-w-[600px]">
-                                <DialogHeader>
-                                  <DialogTitle>Edit Job Listing</DialogTitle>
-                                  <DialogDescription>
-                                    Update the job details and requirements.
-                                  </DialogDescription>
-                                </DialogHeader>
-                                <div className="space-y-4 py-4 max-h-[60vh] overflow-y-auto">
-                                  <div className="grid grid-cols-2 gap-4">
-                                    <div className="space-y-2">
-                                      <Label htmlFor="edit-jobTitle">Job Title</Label>
-                                      <Input 
-                                        id="edit-jobTitle" 
-                                        value={editingJob?.title || ""}
-                                        onChange={(e) => setEditingJob(editingJob ? {...editingJob, title: e.target.value} : null)}
-                                      />
+                            <Input 
+                              id="jobRequirements" 
+                              placeholder="Add a requirement and press Enter"
+                              value={requirementInput}
+                              onChange={(e) => setRequirementInput(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                  e.preventDefault();
+                                  handleAddRequirement();
+                                }
+                              }}
+                            />
+                            <Button 
+                              type="button" 
+                              onClick={handleAddRequirement}
+                              className="bg-cortejtech-purple hover:bg-cortejtech-purple/90"
+                            >
+                              Add
+                            </Button>
+                          </div>
+                          {newJob.requirements && newJob.requirements.length > 0 && (
+                            <ul className="mt-2 space-y-1">
+                              {newJob.requirements.map((req, index) => (
+                                <li key={index} className="flex items-center justify-between bg-gray-100 px-3 py-2 rounded-md">
+                                  <span>{req}</span>
+                                  <Button 
+                                    variant="ghost" 
+                                    size="sm" 
+                                    onClick={() => handleRemoveRequirement(index)}
+                                    className="h-6 w-6 p-0 text-red-500"
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </li>
+                              ))}
+                            </ul>
+                          )}
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="applyLink">Apply Link/Email</Label>
+                          <Input 
+                            id="applyLink" 
+                            placeholder="E.g., https://apply.com or email@example.com"
+                            value={newJob.apply_link}
+                            onChange={(e) => setNewJob({...newJob, apply_link: e.target.value})}
+                          />
+                        </div>
+                      </div>
+                      <DialogFooter>
+                        <Button variant="outline" onClick={() => {
+                          setNewJob({
+                            title: "",
+                            type: "",
+                            location: "",
+                            salary: "",
+                            description: "",
+                            requirements: [],
+                            apply_link: ""
+                          });
+                          setRequirementInput("");
+                        }}>
+                          Cancel
+                        </Button>
+                        <Button 
+                          onClick={handleSaveJob}
+                          disabled={!newJob.title || !newJob.type || !newJob.location || !newJob.description || !newJob.apply_link || isLoading}
+                          className="bg-cortejtech-purple hover:bg-cortejtech-purple/90"
+                        >
+                          {isLoading ? "Saving..." : "Save Job"}
+                        </Button>
+                      </DialogFooter>
+                    </DialogContent>
+                  </Dialog>
+                </CardHeader>
+                <CardContent>
+                  {jobs.length === 0 ? (
+                    <div className="text-center py-8 text-gray-500">
+                      No job listings yet. Click "Add New Job" to create your first job posting.
+                    </div>
+                  ) : (
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Title</TableHead>
+                          <TableHead>Type</TableHead>
+                          <TableHead>Location</TableHead>
+                          <TableHead>Actions</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {jobs.map((job) => (
+                          <TableRow key={job.id}>
+                            <TableCell className="font-medium">{job.title}</TableCell>
+                            <TableCell>{job.type}</TableCell>
+                            <TableCell>{job.location}</TableCell>
+                            <TableCell>
+                              <div className="flex space-x-2">
+                                <Dialog>
+                                  <DialogTrigger asChild>
+                                    <Button 
+                                      variant="ghost" 
+                                      size="sm"
+                                      onClick={() => handleEditJob(job)}
+                                    >
+                                      <Edit className="h-4 w-4" />
+                                    </Button>
+                                  </DialogTrigger>
+                                  <DialogContent className="sm:max-w-[600px]">
+                                    <DialogHeader>
+                                      <DialogTitle>Edit Job Listing</DialogTitle>
+                                      <DialogDescription>
+                                        Update the job details and requirements.
+                                      </DialogDescription>
+                                    </DialogHeader>
+                                    <div className="space-y-4 py-4 max-h-[60vh] overflow-y-auto">
+                                      <div className="grid grid-cols-2 gap-4">
+                                        <div className="space-y-2">
+                                          <Label htmlFor="edit-jobTitle">Job Title</Label>
+                                          <Input 
+                                            id="edit-jobTitle" 
+                                            value={editingJob?.title || ""}
+                                            onChange={(e) => setEditingJob(editingJob ? {...editingJob, title: e.target.value} : null)}
+                                          />
+                                        </div>
+                                        <div className="space-y-2">
+                                          <Label htmlFor="edit-jobType">Job Type</Label>
+                                          <Input 
+                                            id="edit-jobType" 
+                                            value={editingJob?.type || ""}
+                                            onChange={(e) => setEditingJob(editingJob ? {...editingJob, type: e.target.value} : null)}
+                                          />
+                                        </div>
+                                      </div>
+                                      <div className="grid grid-cols-2 gap-4">
+                                        <div className="space-y-2">
+                                          <Label htmlFor="edit-jobLocation">Location</Label>
+                                          <Input 
+                                            id="edit-jobLocation" 
+                                            value={editingJob?.location || ""}
+                                            onChange={(e) => setEditingJob(editingJob ? {...editingJob, location: e.target.value} : null)}
+                                          />
+                                        </div>
+                                        <div className="space-y-2">
+                                          <Label htmlFor="edit-jobSalary">Salary (Optional)</Label>
+                                          <Input 
+                                            id="edit-jobSalary" 
+                                            value={editingJob?.salary || ""}
+                                            onChange={(e) => setEditingJob(editingJob ? {...editingJob, salary: e.target.value} : null)}
+                                          />
+                                        </div>
+                                      </div>
+                                      <div className="space-y-2">
+                                        <Label htmlFor="edit-jobDescription">Job Description</Label>
+                                        <Textarea 
+                                          id="edit-jobDescription" 
+                                          rows={5}
+                                          value={editingJob?.description || ""}
+                                          onChange={(e) => setEditingJob(editingJob ? {...editingJob, description: e.target.value} : null)}
+                                        />
+                                      </div>
+                                      <div className="space-y-2">
+                                        <Label htmlFor="edit-jobRequirements">Requirements</Label>
+                                        <div className="flex space-x-2">
+                                          <Input 
+                                            id="edit-jobRequirements" 
+                                            placeholder="Add a requirement and press Enter"
+                                            value={requirementInput}
+                                            onChange={(e) => setRequirementInput(e.target.value)}
+                                            onKeyDown={(e) => {
+                                              if (e.key === 'Enter') {
+                                                e.preventDefault();
+                                                handleAddRequirement();
+                                              }
+                                            }}
+                                          />
+                                          <Button 
+                                            type="button" 
+                                            onClick={handleAddRequirement}
+                                            className="bg-cortejtech-purple hover:bg-cortejtech-purple/90"
+                                          >
+                                            Add
+                                          </Button>
+                                        </div>
+                                        {editingJob && editingJob.requirements.length > 0 && (
+                                          <ul className="mt-2 space-y-1">
+                                            {editingJob.requirements.map((req, index) => (
+                                              <li key={index} className="flex items-center justify-between bg-gray-100 px-3 py-2 rounded-md">
+                                                <span>{req}</span>
+                                                <Button 
+                                                  variant="ghost" 
+                                                  size="sm" 
+                                                  onClick={() => handleRemoveRequirement(index)}
+                                                  className="h-6 w-6 p-0 text-red-500"
+                                                >
+                                                  <Trash2 className="h-4 w-4" />
+                                                </Button>
+                                              </li>
+                                            ))}
+                                          </ul>
+                                        )}
+                                      </div>
+                                      <div className="space-y-2">
+                                        <Label htmlFor="edit-applyLink">Apply Link/Email</Label>
+                                        <Input 
+                                          id="edit-applyLink" 
+                                          value={editingJob?.apply_link || ""}
+                                          onChange={(e) => setEditingJob(editingJob ? {...editingJob, apply_link: e.target.value} : null)}
+                                        />
+                                      </div>
                                     </div>
-                                    <div className="space-y-2">
-                                      <Label htmlFor="edit-jobType">Job Type</Label>
-                                      <Input 
-                                        id="edit-jobType" 
-                                        value={editingJob?.type || ""}
-                                        onChange={(e) => setEditingJob(editingJob ? {...editingJob, type: e.target.value} : null)}
-                                      />
-                                    </div>
-                                  </div>
-                                  <div className="grid grid-cols-2 gap-4">
-                                    <div className="space-y-2">
-                                      <Label htmlFor="edit-jobLocation">Location</Label>
-                                      <Input 
-                                        id="edit-jobLocation" 
-                                        value={editingJob?.location || ""}
-                                        onChange={(e) => setEditingJob(editingJob ? {...editingJob, location: e.target.value} : null)}
-                                      />
-                                    </div>
-                                    <div className="space-y-2">
-                                      <Label htmlFor="edit-jobSalary">Salary (Optional)</Label>
-                                      <Input 
-                                        id="edit-jobSalary" 
-                                        value={editingJob?.salary || ""}
-                                        onChange={(e) => setEditingJob(editingJob ? {...editingJob, salary: e.target.value} : null)}
-                                      />
-                                    </div>
-                                  </div>
-                                  <div className="space-y-2">
-                                    <Label htmlFor="edit-jobDescription">Job Description</Label>
-                                    <Textarea 
-                                      id="edit-jobDescription" 
-                                      rows={5}
-                                      value={editingJob?.description || ""}
-                                      onChange={(e) => setEditingJob(editingJob ? {...editingJob, description: e.target.value} : null)}
-                                    />
-                                  </div>
-                                  <div className="space-y-2">
-                                    <Label htmlFor="edit-jobRequirements">Requirements</Label>
-                                    <div className="flex space-x-2">
-                                      <Input 
-                                        id="edit-jobRequirements" 
-                                        placeholder="Add a requirement and press Enter"
-                                        value={requirementInput}
-                                        onChange={(e) => setRequirementInput(e.target.value)}
-                                        onKeyDown={(e) => {
-                                          if (e.key === 'Enter') {
-                                            e.preventDefault();
-                                            handleAddRequirement();
-                                          }
-                                        }}
-                                      />
+                                    <DialogFooter>
                                       <Button 
-                                        type="button" 
-                                        onClick={handleAddRequirement}
+                                        variant="outline" 
+                                        onClick={() => setEditingJob(null)}
+                                      >
+                                        Cancel
+                                      </Button>
+                                      <Button 
+                                        onClick={handleSaveJob}
+                                        disabled={!editingJob?.title || !editingJob?.type || !editingJob?.location || !editingJob?.description || !editingJob?.apply_link || isLoading}
                                         className="bg-cortejtech-purple hover:bg-cortejtech-purple/90"
                                       >
-                                        Add
+                                        {isLoading ? "Saving..." : "Update Job"}
                                       </Button>
-                                    </div>
-                                    {editingJob && editingJob.requirements.length > 0 && (
-                                      <ul className="mt-2 space-y-1">
-                                        {editingJob.requirements.map((req, index) => (
-                                          <li key={index} className="flex items-center justify-between bg-gray-100 px-3 py-2 rounded-md">
-                                            <span>{req}</span>
-                                            <Button 
-                                              variant="ghost" 
-                                              size="sm" 
-                                              onClick={() => handleRemoveRequirement(index)}
-                                              className="h-6 w-6 p-0 text-red-500"
-                                            >
-                                              <Trash2 className="h-4 w-4" />
-                                            </Button>
-                                          </li>
-                                        ))}
-                                      </ul>
-                                    )}
-                                  </div>
-                                  <div className="space-y-2">
-                                    <Label htmlFor="edit-applyLink">Apply Link/Email</Label>
-                                    <Input 
-                                      id="edit-applyLink" 
-                                      value={editingJob?.apply_link || ""}
-                                      onChange={(e) => setEditingJob(editingJob ? {...editingJob, apply_link: e.target.value} : null)}
-                                    />
-                                  </div>
-                                </div>
-                                <DialogFooter>
-                                  <Button 
-                                    variant="outline" 
-                                    onClick={() => setEditingJob(null)}
-                                  >
-                                    Cancel
+                                    </DialogFooter>
+                                  </DialogContent>
+                                </Dialog>
+                                
+                                <AlertDialog>
+                                  <AlertDialogTrigger asChild>
+                                    <Button variant="ghost" size="sm" className="text-red-500">
+                                      <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                  </AlertDialogTrigger>
+                                  <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                      <AlertDialogTitle>Delete Job Listing</AlertDialogTitle>
+                                      <AlertDialogDescription>
+                                        Are you sure you want to delete this job listing? This action cannot be undone.
+                                      </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                      <AlertDialogAction 
+                                        onClick={() => handleDeleteJob(job.id)}
+                                        className="bg-red-600 hover:bg-red-700"
+                                      >
+                                        Delete
+                                      </AlertDialogAction>
+                                    </AlertDialogFooter>
+                                  </AlertDialogContent>
+                                </AlertDialog>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+            
+            <TabsContent value="messages">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-2xl">Contact Messages</CardTitle>
+                  <CardDescription>View and manage messages received from the contact form.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {contactMessages.length === 0 ? (
+                    <div className="text-center py-8 text-gray-500">
+                      No messages received yet.
+                    </div>
+                  ) : (
+                    <div className="space-y-6">
+                      {contactMessages.map((msg) => (
+                        <Card key={msg.id} className="border-l-4 border-cortejtech-purple">
+                          <CardHeader className="pb-2">
+                            <div className="flex justify-between items-start">
+                              <div>
+                                <CardTitle>{msg.subject}</CardTitle>
+                                <CardDescription className="flex items-center mt-1">
+                                  <span className="font-medium">{msg.name}</span>
+                                  <span className="mx-2">•</span>
+                                  <span className="text-blue-600">{msg.email}</span>
+                                  {msg.phone && (
+                                    <>
+                                      <span className="mx-2">•</span>
+                                      <span>{msg.phone}</span>
+                                    </>
+                                  )}
+                                </CardDescription>
+                              </div>
+                              <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                  <Button variant="ghost" size="sm" className="text-red-500">
+                                    <Trash2 className="h-4 w-4" />
                                   </Button>
-                                  <Button 
-                                    onClick={handleSaveJob}
-                                    disabled={!editingJob?.title || !editingJob?.type || !editingJob?.location || !editingJob?.description || !editingJob?.apply_link || isLoading}
-                                    className="bg-cortejtech-purple hover:bg-cortejtech-purple/90"
-                                  >
-                                    {isLoading ? "Saving..." : "Update Job"}
-                                  </Button>
-                                </DialogFooter>
-                              </DialogContent>
-                            </Dialog>
-                            
-                            <AlertDialog>
-                              <AlertDialogTrigger asChild>
-                                <Button variant="ghost" size="sm" className="text-red-500">
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
-                              </AlertDialogTrigger>
-                              <AlertDialogContent>
-                                <AlertDialogHeader>
-                                  <AlertDialogTitle>Delete Job Listing</AlertDialogTitle>
-                                  <AlertDialogDescription>
-                                    Are you sure you want to delete this job listing? This action cannot be undone.
-                                  </AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                  <AlertDialogAction 
-                                    onClick={() => handleDeleteJob(job.id)}
-                                    className="bg-red-600 hover:bg-red-700"
-                                  >
-                                    Delete
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle>Delete Message</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                      Are you sure you want to delete this message? This action cannot be undone.
+                                    </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                    <AlertDialogAction 
+                                      onClick={() => handleDeleteMessage(msg.id)}
+                                      className="bg-red-600 hover:bg-red-700"
+                                    >
+                                      Delete
+                                    </AlertDialogAction>
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
+                            </div>
+                          </CardHeader>
+                          <CardContent className="pt-1">
+                            <div className="whitespace-pre-wrap text-gray-700">{msg.message}</div>
+                          </CardContent>
+                          <CardFooter className="border-t pt-3 text-xs text-gray-500">
+                            {msg.created_at && (
+                              <time dateTime={msg.created_at}>
+                                {new Date(msg.created_at).toLocaleString()}
+                              </time>
+                            )}
+                          </CardFooter>
+                        </Card>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </Tabs>
+        </div>
+      </main>
+    </div>
+  );
+};
+
+export default Dashboard;
