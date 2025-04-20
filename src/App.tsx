@@ -17,6 +17,10 @@ import Career from "./pages/Career";
 import NotFound from "./pages/NotFound";
 import Login from "./pages/Admin/Login";
 import Dashboard from "./pages/Admin/Dashboard";
+import AdminAbout from "./pages/Admin/About";
+import AdminServices from "./pages/Admin/Services";
+import AdminPortfolio from "./pages/Admin/Portfolio";
+import AdminBlog from "./pages/Admin/Blog";
 
 const queryClient = new QueryClient();
 
@@ -42,6 +46,10 @@ const App = () => (
           {/* Admin Routes */}
           <Route path="/ankit/admin" element={<Login />} />
           <Route path="/ankit/admin/dashboard" element={<Dashboard />} />
+          <Route path="/ankit/admin/about" element={<AdminAbout />} />
+          <Route path="/ankit/admin/services" element={<AdminServices />} />
+          <Route path="/ankit/admin/portfolio" element={<AdminPortfolio />} />
+          <Route path="/ankit/admin/blog" element={<AdminBlog />} />
           
           {/* Catch-all route */}
           <Route path="*" element={<NotFound />} />
