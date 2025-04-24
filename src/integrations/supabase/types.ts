@@ -19,6 +19,7 @@ export type Database = {
           is_published: boolean | null
           published_at: string | null
           slug: string
+          tags: string[] | null
           title: string
           updated_at: string | null
         }
@@ -31,6 +32,7 @@ export type Database = {
           is_published?: boolean | null
           published_at?: string | null
           slug: string
+          tags?: string[] | null
           title: string
           updated_at?: string | null
         }
@@ -43,6 +45,7 @@ export type Database = {
           is_published?: boolean | null
           published_at?: string | null
           slug?: string
+          tags?: string[] | null
           title?: string
           updated_at?: string | null
         }
@@ -154,6 +157,7 @@ export type Database = {
           id: number
           image_url: string
           project_url: string | null
+          tags: string[] | null
           title: string
         }
         Insert: {
@@ -165,6 +169,7 @@ export type Database = {
           id?: number
           image_url: string
           project_url?: string | null
+          tags?: string[] | null
           title: string
         }
         Update: {
@@ -176,6 +181,7 @@ export type Database = {
           id?: number
           image_url?: string
           project_url?: string | null
+          tags?: string[] | null
           title?: string
         }
         Relationships: []
